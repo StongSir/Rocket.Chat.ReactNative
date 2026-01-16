@@ -125,6 +125,11 @@ const NewServerView = ({ navigation }: INewServerViewProps) => {
 			keyboardHideListener = Keyboard.addListener('keyboardDidHide', () => setShowBottomInfo(true));
 		}
 
+		if (!previousServer) {
+			setValue('workspaceUrl', 'https://chat.zhen-he.com');
+			submit({ serverUrl: 'https://chat.zhen-he.com' });
+		}
+
 		return () => {
 			EventEmitter.removeListener('NewServer', handleNewServerEvent);
 			backHandler.remove();
@@ -185,14 +190,14 @@ const NewServerView = ({ navigation }: INewServerViewProps) => {
 					testID='new-server-view-button'
 				/>
 			</FormContainerInner>
-			<CertificatePicker
+			{/* <CertificatePicker
 				certificate={certificate}
 				chooseCertificate={() => chooseCertificate(completeUrl(workspaceUrl))}
 				connecting={connecting}
 				handleRemove={() => removeCertificate(completeUrl(workspaceUrl))}
 				previousServer={previousServer}
 				showBottomInfo
-			/>
+			/> */}
 		</FormContainer>
 	);
 };

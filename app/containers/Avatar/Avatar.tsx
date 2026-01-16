@@ -1,5 +1,5 @@
 import React from 'react';
-import { View } from 'react-native';
+import { View, Text } from 'react-native';
 import { Image } from 'expo-image';
 import Touchable from 'react-native-platform-touchable';
 import { settings as RocketChatSettings } from '@rocket.chat/sdk';
@@ -45,7 +45,8 @@ const Avatar = React.memo(
 		const avatarStyle = {
 			width: size,
 			height: size,
-			borderRadius
+			borderRadius,
+			overflow: 'hidden' as const
 		};
 
 		let image;
@@ -63,36 +64,54 @@ const Avatar = React.memo(
 				</MarkdownContext.Provider>
 			);
 		} else {
-			let uri = avatar;
-			if (!isStatic) {
-				uri = getAvatarURL({
-					type,
-					text,
-					size,
-					userId,
-					token,
-					avatar,
-					server,
-					avatarETag,
-					serverVersion,
-					rid,
-					blockUnauthenticatedAccess,
-					avatarExternalProviderUrl,
-					roomAvatarExternalProviderUrl,
-					cdnPrefix
-				});
-			}
+			const isChinese = /[\u4e00-\u9fa5]/.test(text || '');
+			if (isChinese && !avatar) {
+				const color = (str: string) => {
+					let hash = 0;
+					for (let i = 0; i < str.length; i++) {
+						hash = str.charCodeAt(i) + ((hash << 5) - hash);
+					}
+					const c = (hash & 0x00ffffff).toString(16).toUpperCase();
+					return '#' + '00000'.substring(0, 6 - c.length) + c;
+				};
 
-			image = (
-				<Image
-					style={avatarStyle}
-					source={{
-						uri,
-						headers: RocketChatSettings.customHeaders
-					}}
-					priority='high'
-				/>
-			);
+				image = (
+					<View style={[avatarStyle, { backgroundColor: color(text || ''), alignItems: 'center', justifyContent: 'center' }]}>
+						<Text style={{ color: '#fff', fontSize: size / 2, fontWeight: 'bold' }}>{(text || '').slice(0, 1)}</Text>
+					</View>
+				);
+			} else {
+				let uri = avatar;
+				if (!isStatic) {
+					uri = getAvatarURL({
+						type,
+						text,
+						size,
+						userId,
+						token,
+						avatar,
+						server,
+						avatarETag,
+						serverVersion,
+						rid,
+						blockUnauthenticatedAccess,
+						avatarExternalProviderUrl,
+						roomAvatarExternalProviderUrl,
+						cdnPrefix
+					});
+				}
+
+				image = (
+					<Image
+						style={avatarStyle}
+						source={{
+							uri,
+							headers: RocketChatSettings.customHeaders
+						}}
+						priority='high'
+					/>
+				);
+			}
 		}
 
 		if (onPress) {
