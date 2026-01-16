@@ -18,6 +18,7 @@ export interface IAvatar {
 	onPress?: () => void;
 	getCustomEmoji?: TGetCustomEmoji;
 	avatarETag?: string;
+	avatarLoaded?: boolean;
 	isStatic?: boolean | string;
 	rid?: string;
 	blockUnauthenticatedAccess?: boolean;

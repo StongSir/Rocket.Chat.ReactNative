@@ -97,6 +97,7 @@ interface IMessageReply {
 	getCustomEmoji: TGetCustomEmoji;
 	msg?: string;
 	showAttachment?: (file: IAttachment) => void;
+	isOwnMessage?: boolean;
 }
 
 const Title = React.memo(
@@ -205,7 +206,7 @@ const Fields = React.memo(
 );
 
 const Reply = React.memo(
-	({ attachment, timeFormat, getCustomEmoji, msg, showAttachment }: IMessageReply) => {
+	({ attachment, timeFormat, getCustomEmoji, msg, showAttachment, isOwnMessage }: IMessageReply) => {
 		'use memo';
 
 		const [loading, setLoading] = useState(false);
@@ -237,14 +238,15 @@ const Reply = React.memo(
 		}
 
 		return (
-			<View style={{ gap: 4 }}>
+			<View style={{ gap: 4, marginBottom: 8 }}>
 				<Touchable
 					testID={`reply-${attachment?.author_name}-${attachment?.text}`}
 					onPress={onPress}
 					style={[
 						styles.button,
 						{
-							borderColor: strokeLight
+							borderColor: strokeLight,
+							alignSelf: isOwnMessage ? 'flex-end' : 'flex-start'
 						}
 					]}
 					background={Touchable.Ripple(themes[theme].surfaceNeutral)}

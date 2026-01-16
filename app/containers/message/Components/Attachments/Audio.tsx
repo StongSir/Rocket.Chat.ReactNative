@@ -13,16 +13,17 @@ interface IMessageAudioProps {
 	getCustomEmoji: TGetCustomEmoji;
 	author?: IUserMessage;
 	msg?: string;
+	isOwnMessage?: boolean;
 }
 
-const MessageAudio = ({ file, getCustomEmoji, author, msg }: IMessageAudioProps) => {
+const MessageAudio = ({ file, getCustomEmoji, author, msg, isOwnMessage }: IMessageAudioProps) => {
 	'use memo';
 
 	const { user, id, rid } = useContext(MessageContext);
 	const { status, onPress, url } = useMediaAutoDownload({ file, author });
 
 	return (
-		<View style={{ gap: 4 }}>
+		<View style={{ gap: 4, width: '100%' }}>
 			{msg ? <Markdown msg={msg} username={user.username} getCustomEmoji={getCustomEmoji} /> : null}
 			<AudioPlayer msgId={id} fileUri={url} downloadState={status} onPlayButtonPress={onPress} rid={rid} />
 		</View>

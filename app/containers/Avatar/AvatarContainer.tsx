@@ -21,7 +21,8 @@ const AvatarContainer = ({
 	isStatic,
 	rid,
 	accessibilityLabel,
-	accessible
+	accessible,
+	avatarETag
 }: IAvatar): React.ReactElement => {
 	const server = useAppSelector(state => state.server.server);
 	const serverVersion = useAppSelector(state => state.server.version);
@@ -46,7 +47,7 @@ const AvatarContainer = ({
 		state => state.settings.Accounts_AvatarBlockUnauthenticatedAccess ?? true
 	) as boolean;
 
-	const { avatarETag } = useAvatarETag({ username, text, type, rid, id });
+	const { avatarETag: avatarETagFromHook, avatarLoaded } = useAvatarETag({ username, text, type, rid, id });
 
 	return (
 		<Avatar
@@ -68,7 +69,8 @@ const AvatarContainer = ({
 			blockUnauthenticatedAccess={blockUnauthenticatedAccess}
 			avatarExternalProviderUrl={avatarExternalProviderUrl}
 			roomAvatarExternalProviderUrl={roomAvatarExternalProviderUrl}
-			avatarETag={avatarETag}
+			avatarETag={avatarETag || avatarETagFromHook}
+			avatarLoaded={avatarLoaded}
 			serverVersion={serverVersion}
 			cdnPrefix={cdnPrefix}
 			accessibilityLabel={accessibilityLabel}
@@ -78,3 +80,4 @@ const AvatarContainer = ({
 };
 
 export default AvatarContainer;
+

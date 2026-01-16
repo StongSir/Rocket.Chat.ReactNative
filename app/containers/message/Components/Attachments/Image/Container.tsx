@@ -16,7 +16,8 @@ const ImageContainer = ({
 	author,
 	msg,
 	imagePreview,
-	imageType
+	imageType,
+	isOwnMessage
 }: IImageContainer): React.ReactElement | null => {
 	'use memo';
 
@@ -26,7 +27,7 @@ const ImageContainer = ({
 	const image = (
 		<Button onPress={onPress}>
 			<WidthAwareView>
-				<MessageImage uri={url} status={status} encrypted={isEncrypted} imagePreview={imagePreview} imageType={imageType} />
+				<MessageImage uri={url} status={status} encrypted={isEncrypted} imagePreview={imagePreview} imageType={imageType} isOwnMessage={isOwnMessage} />
 			</WidthAwareView>
 		</Button>
 	);

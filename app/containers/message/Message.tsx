@@ -86,7 +86,7 @@ const MessageInner = React.memo((props: IMessageInner) => {
 			<>
 				<User {...props} />
 				{showTimeLarge ? <MessageTime {...props} /> : null}
-				<View style={{ gap: 4 }}>
+				<View style={{ gap: 4, width: '100%' }}>
 					<Quote {...props} />
 					<Content {...props} />
 					<Attachments {...props} />
@@ -99,7 +99,14 @@ const MessageInner = React.memo((props: IMessageInner) => {
 		);
 	}
 
-	return <WidthAwareView>{content}</WidthAwareView>;
+	// Apply reverse alignment for own messages
+	const innerStyle = props.isOwnMessage ? styles.innerContentReverse : undefined;
+
+	return (
+		<WidthAwareView>
+			<View style={innerStyle}>{content}</View>
+		</WidthAwareView>
+	);
 });
 MessageInner.displayName = 'MessageInner';
 
@@ -190,9 +197,9 @@ const Message = React.memo((props: IMessageTouchable & IMessage) => {
 				accessibilityLabel={props?.msg || ''}
 				accessibilityLanguage={props.autoTranslateLanguage}
 				index={2}>
-				<View accessible style={styles.flex}>
+				<View accessible style={props.isOwnMessage ? styles.flexReverse : styles.flex}>
 					<MessageAvatar {...props} />
-					<View style={styles.messageContent}>
+					<View style={props.isOwnMessage ? styles.messageContentReverse : styles.messageContent}>
 						<MessageInner {...props} />
 					</View>
 					{!props.isHeader ? (

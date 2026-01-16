@@ -72,8 +72,8 @@ interface IMessageContainerState {
 class MessageContainer extends React.Component<IMessageContainerProps, IMessageContainerState> {
 	static defaultProps = {
 		getCustomEmoji: () => null,
-		onLongPress: () => {},
-		blockAction: () => {},
+		onLongPress: () => { },
+		blockAction: () => { },
 		archived: false,
 		broadcast: false,
 		isIgnored: false,
@@ -366,7 +366,7 @@ class MessageContainer extends React.Component<IMessageContainerProps, IMessageC
 			isReadReceiptEnabled,
 			autoTranslateRoom,
 			autoTranslateLanguage,
-			navToRoomInfo = () => {},
+			navToRoomInfo = () => { },
 			getCustomEmoji,
 			isThreadRoom,
 			handleEnterCall,
@@ -504,6 +504,7 @@ class MessageContainer extends React.Component<IMessageContainerProps, IMessageC
 					isTranslated={isTranslated}
 					isBeingEdited={isBeingEdited}
 					isPreview={isPreview}
+					isOwnMessage={!otherUserMessage}
 					pinned={pinned}
 					autoTranslateLanguage={autoTranslateLanguage}
 				/>

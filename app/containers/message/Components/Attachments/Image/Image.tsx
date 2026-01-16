@@ -13,7 +13,7 @@ import { AUTOPLAY_GIFS_PREFERENCES_KEY } from '../../../../../lib/constants/keys
 import ImageBadge from './ImageBadge';
 import log from '../../../../../lib/methods/helpers/log';
 
-export const MessageImage = React.memo(({ uri, status, encrypted = false, imagePreview, imageType }: IMessageImage) => {
+export const MessageImage = React.memo(({ uri, status, encrypted = false, imagePreview, imageType, isOwnMessage }: IMessageImage) => {
 	'use memo';
 
 	const { colors } = useTheme();
@@ -45,6 +45,7 @@ export const MessageImage = React.memo(({ uri, status, encrypted = false, imageP
 	const containerStyle: ViewStyle = {
 		alignItems: 'center',
 		justifyContent: 'center',
+		alignSelf: isOwnMessage ? 'flex-end' : 'flex-start',
 		...(imageDimensions.width <= 64 && { width: 64 }),
 		...(imageDimensions.height <= 64 && { height: 64 })
 	};

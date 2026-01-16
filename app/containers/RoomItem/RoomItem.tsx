@@ -57,7 +57,8 @@ const RoomItem = ({
 	hideMentionStatus,
 	accessibilityDate,
 	abacAttributes,
-	isInvited
+	isInvited,
+	avatarETag
 }: IRoomItemProps) => {
 	'use memo';
 
@@ -94,6 +95,7 @@ const RoomItem = ({
 			<Wrapper
 				accessibilityLabel={accessibilityLabel}
 				avatar={avatar}
+				avatarETag={avatarETag}
 				type={type}
 				userId={userId}
 				rid={rid}

@@ -16,7 +16,7 @@ const removeQuote = (file?: IAttachment) =>
 	file?.image_url || file?.audio_url || file?.video_url || (file?.actions?.length || 0) > 0 || file?.collapsed;
 
 const Attachments: React.FC<IMessageAttachments> = React.memo(
-	({ attachments, timeFormat, showAttachment, getCustomEmoji, author }: IMessageAttachments) => {
+	({ attachments, timeFormat, showAttachment, getCustomEmoji, author, isOwnMessage }: IMessageAttachments) => {
 		'use memo';
 
 		const { translateLanguage } = useContext(MessageContext);
@@ -40,12 +40,13 @@ const Attachments: React.FC<IMessageAttachments> = React.memo(
 						msg={msg}
 						imagePreview={file.image_preview}
 						imageType={file.image_type}
+						isOwnMessage={isOwnMessage}
 					/>
 				);
 			}
 
 			if (file && file.audio_url) {
-				return <Audio key={file.audio_url} file={file} getCustomEmoji={getCustomEmoji} author={author} msg={msg} />;
+				return <Audio key={file.audio_url} file={file} getCustomEmoji={getCustomEmoji} author={author} msg={msg} isOwnMessage={isOwnMessage} />;
 			}
 
 			if (file.video_url) {
@@ -70,7 +71,7 @@ const Attachments: React.FC<IMessageAttachments> = React.memo(
 
 			return null;
 		});
-		return <View style={{ gap: 4 }}>{attachmentsElements}</View>;
+		return <View style={{ gap: 4, width: '100%' }}>{attachmentsElements}</View>;
 	},
 	(prevProps, nextProps) => dequal(prevProps.attachments, nextProps.attachments)
 );

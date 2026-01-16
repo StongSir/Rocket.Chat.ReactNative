@@ -11,7 +11,7 @@ export function getRoomAvatar(room) {
 	if (isGroupChat(room) && room.uids && room.usernames) {
 		return room.uids.length + room.usernames.join();
 	}
-	return room.prid ? room.fname : room.fname || room.name;
+	return room.prid ? room.fname : room.name;
 }
 
 export function getUidDirectMessage(room) {

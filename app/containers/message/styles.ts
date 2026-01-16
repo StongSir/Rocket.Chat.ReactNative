@@ -21,8 +21,45 @@ export default StyleSheet.create({
 		flex: 1,
 		marginLeft: 10
 	},
+	messageContentReverse: {
+		flex: 1,
+		marginRight: 10
+	},
+	innerContentReverse: {
+		alignItems: 'flex-end',
+		width: '100%'
+	},
 	flex: {
 		flexDirection: 'row'
+	},
+	flexReverse: {
+		flexDirection: 'row-reverse'
+	},
+	bubbleOwn: {
+		backgroundColor: '#64B5F6',
+		borderRadius: 10,
+		borderTopRightRadius: 2,
+		paddingHorizontal: 12,
+		paddingVertical: 8,
+		maxWidth: '80%',
+		marginBottom: 8,
+		alignSelf: 'flex-end'
+	},
+	bubbleOther: {
+		backgroundColor: '#E8E8E8',
+		borderRadius: 10,
+		borderTopLeftRadius: 2,
+		paddingHorizontal: 12,
+		paddingVertical: 8,
+		maxWidth: '80%',
+		marginBottom: 8,
+		alignSelf: 'flex-start'
+	},
+	bubbleTextOwn: {
+		color: '#FFFFFF'
+	},
+	bubbleTextOther: {
+		color: '#000000'
 	},
 	temp: { opacity: 0.3 },
 	reactionsContainer: {
@@ -107,8 +144,8 @@ export default StyleSheet.create({
 		...sharedStyles.textRegular
 	},
 	time: {
-		fontSize: 13,
-		lineHeight: 18,
+		fontSize: 11,
+		lineHeight: 14,
 		...sharedStyles.textRegular
 	},
 	repliedThread: {

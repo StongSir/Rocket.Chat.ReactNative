@@ -7,7 +7,7 @@ import { type IRoomItemContainerProps } from './interfaces';
 import RoomItem from './RoomItem';
 import { isInviteSubscription } from '../../lib/methods/isInviteSubscription';
 
-const attrs = ['width', 'isFocused', 'showLastMessage', 'autoJoin', 'showAvatar', 'displayMode'];
+const attrs = ['width', 'isFocused', 'showLastMessage', 'autoJoin', 'showAvatar', 'displayMode', 'avatarETag'];
 
 const RoomItemContainer = React.memo(
 	({
@@ -61,6 +61,7 @@ const RoomItemContainer = React.memo(
 			<RoomItem
 				name={name}
 				avatar={avatar}
+				avatarETag={item.avatarETag}
 				isGroupChat={isGroupChat(item)}
 				isInvited={isInviteSubscription(item)}
 				isRead={isRead}

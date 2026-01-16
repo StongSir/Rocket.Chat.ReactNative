@@ -23,7 +23,7 @@ const isQuoteAttachment = (file?: IAttachment): boolean => {
 };
 
 const Quote: React.FC<IMessageAttachments> = React.memo(
-	({ attachments, timeFormat, showAttachment, getCustomEmoji }: IMessageAttachments) => {
+	({ attachments, timeFormat, showAttachment, getCustomEmoji, isOwnMessage }: IMessageAttachments) => {
 		'use memo';
 
 		const { translateLanguage } = useContext(MessageContext);
@@ -45,6 +45,7 @@ const Quote: React.FC<IMessageAttachments> = React.memo(
 					getCustomEmoji={getCustomEmoji}
 					msg={msg}
 					showAttachment={showAttachment}
+					isOwnMessage={isOwnMessage}
 				/>
 			);
 		});

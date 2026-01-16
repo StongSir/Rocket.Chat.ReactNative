@@ -59,7 +59,7 @@ export const useSubscriptions = () => {
 				whereClause.push(Q.sortBy('room_updated_at', Q.desc));
 			}
 
-			const observeWithColumns = isGrouping ? ['alert', 'on_hold', 'f'] : ['on_hold'];
+			const observeWithColumns = isGrouping ? ['alert', 'on_hold', 'f', 'avatar_etag'] : ['on_hold', 'avatar_etag'];
 
 			const observable = await db
 				.get('subscriptions')

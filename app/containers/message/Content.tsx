@@ -79,8 +79,31 @@ const Content = React.memo(
 			);
 		}
 
+		// Determine bubble style based on message ownership and theme
+		// Only apply bubble for actual text messages
+		const shouldShowBubble = content && props.msg && !props.isInfo && !props.isIgnored;
+
+		// Theme-aware bubble colors
+		const isDarkTheme = theme === 'dark' || theme === 'black';
+		const bubbleColors = {
+			own: '#127fec',                              // Same blue for both themes
+			other: isDarkTheme ? '#3D3D3D' : '#E8E8E8', // Dark gray for dark, Light gray for light
+			textOwn: isDarkTheme ? '#FFFFFF' : '#000000', // White text in dark, Black text in light
+			textOther: isDarkTheme ? '#FFFFFF' : '#000000' // White text in dark, Black text in light
+		};
+
+		const bubbleStyle = shouldShowBubble
+			? [
+				props.isOwnMessage ? styles.bubbleOwn : styles.bubbleOther,
+				{ backgroundColor: props.isOwnMessage ? bubbleColors.own : bubbleColors.other }
+			]
+			: undefined;
+
 		return content ? (
-			<View style={props.isTemp && styles.temp} testID={`message-content-${props.msg || ''}`}>
+			<View
+				style={[bubbleStyle, props.isTemp && styles.temp]}
+				testID={`message-content-${props.msg || ''}`}
+			>
 				{content}
 			</View>
 		) : null;

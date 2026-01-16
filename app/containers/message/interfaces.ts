@@ -21,6 +21,7 @@ export interface IMessageAttachments {
 	showAttachment?: (file: IAttachment) => void;
 	getCustomEmoji: TGetCustomEmoji;
 	author?: IUserMessage;
+	isOwnMessage?: boolean;
 }
 
 export interface IMessageAvatar {
@@ -71,6 +72,7 @@ export interface IMessageContent {
 	isHeader: boolean;
 	isTranslated: boolean;
 	pinned?: boolean;
+	isOwnMessage?: boolean;
 }
 
 export interface IMessageEmoji {
@@ -108,15 +110,16 @@ export interface IMessageRepliedThread extends Pick<IThread, 'tmid' | 'tmsg' | '
 
 export interface IMessageInner
 	extends IMessageContent,
-		IMessageCallButton,
-		IMessageBlocks,
-		IMessageThread,
-		IMessageAttachments,
-		IMessageBroadcast {
+	IMessageCallButton,
+	IMessageBlocks,
+	IMessageThread,
+	IMessageAttachments,
+	IMessageBroadcast {
 	type: MessageType;
 	blocks: [];
 	urls?: IUrl[];
 	isPreview?: boolean;
+	isOwnMessage?: boolean;
 }
 
 export interface IMessage extends IMessageRepliedThread, IMessageInner, IMessageAvatar {
@@ -126,6 +129,7 @@ export interface IMessage extends IMessageRepliedThread, IMessageInner, IMessage
 	isTemp: boolean;
 	isHeader: boolean;
 	hasError: boolean;
+	isOwnMessage?: boolean;
 	onLongPress?: (item: TAnyMessageModel) => void;
 	isReadReceiptEnabled?: boolean;
 	unread?: boolean;

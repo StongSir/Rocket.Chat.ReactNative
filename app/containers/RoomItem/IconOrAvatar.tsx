@@ -21,13 +21,21 @@ const IconOrAvatar = ({
 	showLastMessage,
 	displayMode,
 	sourceType,
-	abacAttributes
+	abacAttributes,
+	avatarETag
 }: IIconOrAvatar): React.ReactElement | null => {
 	const { rowHeight } = useResponsiveLayout();
 
 	if (showAvatar) {
 		return (
-			<Avatar text={avatar} size={displayMode === DisplayMode.Condensed ? 36 : 48} type={type} style={styles.avatar} rid={rid} />
+			<Avatar
+				text={avatar}
+				size={displayMode === DisplayMode.Condensed ? 36 : 48}
+				type={type}
+				style={styles.avatar}
+				rid={rid}
+				avatarETag={avatarETag}
+			/>
 		);
 	}
 

@@ -42,6 +42,7 @@ export interface IUpdatedAtProps {
 export interface IWrapperProps {
 	accessibilityLabel: string;
 	avatar: string;
+	avatarETag?: string;
 	type: string;
 	userId: string | null;
 	rid: string;
@@ -105,6 +106,7 @@ export interface IRoomItemProps extends IBaseRoomItem {
 	prid: string;
 	name: string;
 	avatar: string;
+	avatarETag?: string;
 	testID: string;
 	status: TUserStatus;
 	isGroupChat: boolean;
@@ -153,6 +155,7 @@ export interface ITouchableProps extends IRoomItemTouchables {
 
 export interface IIconOrAvatar {
 	avatar: string;
+	avatarETag?: string;
 	type: string;
 	rid: string;
 	userId: string | null;

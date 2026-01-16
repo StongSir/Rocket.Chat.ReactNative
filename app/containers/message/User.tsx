@@ -24,12 +24,12 @@ const styles = StyleSheet.create({
 	},
 	username: {
 		flexShrink: 1,
-		fontSize: 16,
-		lineHeight: 22,
+		fontSize: 11,
+		lineHeight: 14,
 		...sharedStyles.textSemibold
 	},
 	usernameInfoMessage: {
-		fontSize: 16,
+		fontSize: 11,
 		...sharedStyles.textMedium
 	},
 	titleContainer: {
@@ -63,6 +63,7 @@ interface IMessageUser {
 	unread?: boolean;
 	pinned?: boolean;
 	isTranslated: boolean;
+	isOwnMessage?: boolean;
 }
 
 const User = React.memo(
@@ -78,6 +79,7 @@ const User = React.memo(
 		type,
 		isEdited,
 		isTranslated,
+		isOwnMessage,
 		...props
 	}: IMessageUser) => {
 		'use memo';
