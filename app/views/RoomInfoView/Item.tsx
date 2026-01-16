@@ -1,5 +1,4 @@
-import React from 'react';
-import { View } from 'react-native';
+import { TouchableOpacity, View } from 'react-native';
 
 import Markdown from '../../containers/markdown';
 import styles from './styles';
@@ -9,17 +8,24 @@ interface IItem {
 	label?: string;
 	content?: string;
 	testID?: string;
+	onPress?: () => void;
 }
 
-const Item = ({ label, content, testID }: IItem): React.ReactElement | null => {
+const Item = ({ label, content, testID, onPress }: IItem): React.ReactElement | null => {
 	if (!content) return null;
 
-	return (
+	const children = (
 		<View style={styles.item} testID={testID}>
 			{label ? <ItemLabel label={label} testID={testID} /> : null}
 			<Markdown msg={content} />
 		</View>
 	);
+
+	if (onPress) {
+		return <TouchableOpacity onPress={onPress}>{children}</TouchableOpacity>;
+	}
+
+	return children;
 };
 
 export default Item;
