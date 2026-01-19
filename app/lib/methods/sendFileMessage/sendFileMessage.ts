@@ -24,6 +24,14 @@ export async function sendFileMessage(
 		const uploadUrl = `${server}/api/v1/rooms.upload/${rid}`;
 		fileInfo.rid = rid;
 
+		if (fileInfo.name) {
+			try {
+				fileInfo.name = decodeURIComponent(fileInfo.name);
+			} catch {
+				// Do nothing
+			}
+		}
+
 		const db = database.active;
 		const uploadsCollection = db.get('uploads');
 		uploadPath = getUploadPath(fileInfo.path, rid);

@@ -14,6 +14,19 @@ import MessageContext from '../../../Context';
 import Touchable from '../../../Touchable';
 import { BUTTON_HIT_SLOP } from '../../../utils';
 
+// Decode URL-encoded filenames (fixes Chinese filename display issue)
+const decodeFilename = (filename: string | undefined): string | undefined => {
+	if (!filename) return filename;
+	try {
+		if (filename.includes('%')) {
+			return decodeURIComponent(filename);
+		}
+		return filename;
+	} catch {
+		return filename;
+	}
+};
+
 const styles = StyleSheet.create({
 	button: {
 		flexDirection: 'row',
@@ -176,7 +189,7 @@ const CollapsibleQuote = React.memo(
 					<View style={styles.touchableContainer}>
 						<View style={styles.attachmentContainer}>
 							<View style={styles.authorContainer}>
-								<Text style={[styles.title, { color: fontSecondaryInfo }]}>{attachment.title}</Text>
+								<Text style={[styles.title, { color: fontSecondaryInfo }]}>{decodeFilename(attachment.title)}</Text>
 							</View>
 							{!collapsed && <AttText text={attachment.text} getCustomEmoji={getCustomEmoji} />}
 							{!collapsed && <Fields attachment={attachment} getCustomEmoji={getCustomEmoji} />}

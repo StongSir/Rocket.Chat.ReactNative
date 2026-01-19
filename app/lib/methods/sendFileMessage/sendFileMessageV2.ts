@@ -35,11 +35,21 @@ export async function sendFileMessageV2(
 		const { file, getContent, fileContent } = await Encryption.encryptFile(rid, fileInfo);
 		file.path = await copyFileToCacheDirectoryIfNeeded(file.path, file.name);
 
+		// Decode filename if URL encoded (fixes Chinese filename issue)
+		let decodedFileName = file.name;
+		if (decodedFileName) {
+			try {
+				decodedFileName = decodeURIComponent(decodedFileName);
+			} catch {
+				// keep original if decode fails
+			}
+		}
+
 		const formData: IFormData[] = [];
 		formData.push({
 			name: 'file',
 			type: file.type,
-			filename: file.name,
+			filename: decodedFileName,
 			uri: file.path
 		});
 		if (fileContent) {

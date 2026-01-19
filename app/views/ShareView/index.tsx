@@ -211,6 +211,7 @@ class ShareView extends Component<IShareViewProps, IShareViewState> {
 				}
 
 				// Set a filename, if there isn't any
+				// Set a filename, if there isn't any
 				if (!item.filename) {
 					item.filename = item?.path?.split('/')?.pop();
 				}

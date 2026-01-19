@@ -18,6 +18,20 @@ import Touchable from '../../Touchable';
 import messageStyles from '../../styles';
 import dayjs from '../../../../lib/dayjs';
 
+// Decode URL-encoded filenames (fixes Chinese filename display issue)
+const decodeFilename = (filename: string | undefined): string | undefined => {
+	if (!filename) return filename;
+	try {
+		// Only decode if it looks like URL-encoded (contains %)
+		if (filename.includes('%')) {
+			return decodeURIComponent(filename);
+		}
+		return filename;
+	} catch {
+		return filename;
+	}
+};
+
 const styles = StyleSheet.create({
 	button: {
 		flex: 1,
@@ -113,7 +127,7 @@ const Title = React.memo(
 					</Text>
 				) : null}
 				{time ? <Text style={[messageStyles.time, { color: themes[theme].fontSecondaryInfo }]}>{time}</Text> : null}
-				{attachment.title ? <Text style={[styles.title, { color: themes[theme].fontDefault }]}>{attachment.title}</Text> : null}
+				{attachment.title ? <Text style={[styles.title, { color: themes[theme].fontDefault }]}>{decodeFilename(attachment.title)}</Text> : null}
 			</View>
 		);
 	}
@@ -124,7 +138,7 @@ const Description = React.memo(
 		'use memo';
 
 		const { user } = useContext(MessageContext);
-		const text = attachment.text || attachment.title;
+		const text = attachment.text || decodeFilename(attachment.title);
 
 		if (!text) {
 			return null;
