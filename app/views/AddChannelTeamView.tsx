@@ -69,12 +69,12 @@ const AddChannelTeamView = () => {
 							onPress={() =>
 								isMasterDetail
 									? navigation.navigate('SelectedUsersView', {
-											nextAction: () => navigation.navigate('CreateChannelView', { teamId })
-									  })
+										nextAction: () => navigation.navigate('CreateChannelView', { teamId })
+									})
 									: navigation.navigate('SelectedUsersView', {
-											nextAction: () =>
-												navigation.navigate('ChatsStackNavigator', { screen: 'CreateChannelView', params: { teamId } })
-									  })
+										nextAction: () =>
+											navigation.navigate('ChatsStackNavigator', { screen: 'CreateChannelView', params: { teamId } })
+									})
 							}
 							testID='add-channel-team-view-create-channel'
 							left={() => <List.Icon name='team' />}

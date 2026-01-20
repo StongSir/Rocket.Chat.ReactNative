@@ -54,7 +54,7 @@ const Content = React.memo(
 			);
 		} else if (isPreview) {
 			content = <MarkdownPreview testID={`message-preview-${props.msg}`} msg={props.msg} />;
-		} else if (props.msg) {
+		} else if (props.msg && props.msg.trim()) {
 			content = (
 				<Markdown
 					msg={props.msg}
@@ -81,15 +81,13 @@ const Content = React.memo(
 
 		// Determine bubble style based on message ownership and theme
 		// Only apply bubble for actual text messages
-		const shouldShowBubble = content && props.msg && !props.isInfo && !props.isIgnored;
+		const shouldShowBubble = content && props.msg && props.msg.trim() && !props.isInfo && !props.isIgnored;
 
 		// Theme-aware bubble colors
 		const isDarkTheme = theme === 'dark' || theme === 'black';
 		const bubbleColors = {
 			own: '#127fec',                              // Same blue for both themes
-			other: isDarkTheme ? '#3D3D3D' : '#E8E8E8', // Dark gray for dark, Light gray for light
-			textOwn: isDarkTheme ? '#FFFFFF' : '#000000', // White text in dark, Black text in light
-			textOther: isDarkTheme ? '#FFFFFF' : '#000000' // White text in dark, Black text in light
+			other: isDarkTheme ? '#3D3D3D' : '#E8E8E8'   // Dark gray for dark, Light gray for light
 		};
 
 		const bubbleStyle = shouldShowBubble
