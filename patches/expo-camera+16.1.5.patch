@@ -1,0 +1,28 @@
+diff --git a/node_modules/expo-camera/ios/Current/CameraView.swift b/node_modules/expo-camera/ios/Current/CameraView.swift
+index f3e6668..bdc686f 100644
+--- a/node_modules/expo-camera/ios/Current/CameraView.swift
++++ b/node_modules/expo-camera/ios/Current/CameraView.swift
+@@ -655,14 +655,15 @@ public class CameraView: ExpoView, EXAppLifecycleListener,
+ 
+   @available(iOS 18.0, *)
+   func toggleRecording() {
+-    guard let videoFileOutput else {
+-      return
+-    }
+-    if videoFileOutput.isRecordingPaused {
+-      videoFileOutput.resumeRecording()
+-    } else {
+-      videoFileOutput.pauseRecording()
+-    }
++//    guard let videoFileOutput else {
++//      return
++//    }
++//    if videoFileOutput.isRecordingPaused {
++//      videoFileOutput.resumeRecording()
++//    } else {
++//      videoFileOutput.pauseRecording()
++//    }
++    log.warn("toggleRecording is not supported on iOS")
+   }
+ 
+   func setVideoOptions(options: CameraRecordingOptions, for connection: AVCaptureConnection, promise: Promise) async {

@@ -1,0 +1,102 @@
+diff --git a/node_modules/expo-modules-core/ios/Core/Modules/CoreModule.swift b/node_modules/expo-modules-core/ios/Core/Modules/CoreModule.swift
+index 3cbedf8..520ca81 100644
+--- a/node_modules/expo-modules-core/ios/Core/Modules/CoreModule.swift
++++ b/node_modules/expo-modules-core/ios/Core/Modules/CoreModule.swift
+@@ -6,7 +6,7 @@ import Foundation
+ // The core module that describes the `global.expo` object.
+ internal final class CoreModule: Module {
+   internal func definition() -> ModuleDefinition {
+-    Constant("expoModulesCoreVersion") {
++    Constant("expoModulesCoreVersion") { () -> [String: Any] in
+       let version = CoreModuleHelper.getVersion()
+       let components = version.split(separator: "-")[0].split(separator: ".").compactMap { Int($0) }
+ 
+diff --git a/node_modules/expo-modules-core/ios/Core/Views/SwiftUI/AnyChild.swift b/node_modules/expo-modules-core/ios/Core/Views/SwiftUI/AnyChild.swift
+index 7236b01..2dec547 100644
+--- a/node_modules/expo-modules-core/ios/Core/Views/SwiftUI/AnyChild.swift
++++ b/node_modules/expo-modules-core/ios/Core/Views/SwiftUI/AnyChild.swift
+@@ -5,17 +5,19 @@ import SwiftUI
+ /**
+  A type-erased protocol representing a child view for a SwiftUI view.
+  */
+-extension ExpoSwiftUI {
+-  public protocol AnyChild: SwiftUI.View {
+-    // swiftlint:disable:next nesting - Keep AnyChild protocol inside ExpoSwiftUI namespace
+-    associatedtype ChildViewType: SwiftUI.View
+-    var childView: ChildViewType { get }
++public protocol ExpoSwiftUIAnyChild: SwiftUI.View {
++  // swiftlint:disable:next nesting - Keep AnyChild protocol inside ExpoSwiftUI namespace
++  associatedtype ChildViewType: SwiftUI.View
++  var childView: ChildViewType { get }
+ 
+-    var id: ObjectIdentifier { get }
+-  }
++  var id: ObjectIdentifier { get }
++}
++
++extension ExpoSwiftUI {
++  public typealias AnyChild = ExpoSwiftUIAnyChild
+ }
+ 
+-public extension ExpoSwiftUI.AnyChild where Self == ChildViewType {
++public extension ExpoSwiftUIAnyChild where Self == ChildViewType {
+   var childView: ChildViewType {
+     self
+   }
+diff --git a/node_modules/expo-modules-core/ios/Core/Views/SwiftUI/AutoSizingStack.swift b/node_modules/expo-modules-core/ios/Core/Views/SwiftUI/AutoSizingStack.swift
+index 3c855b7..255d470 100644
+--- a/node_modules/expo-modules-core/ios/Core/Views/SwiftUI/AutoSizingStack.swift
++++ b/node_modules/expo-modules-core/ios/Core/Views/SwiftUI/AutoSizingStack.swift
+@@ -27,25 +27,13 @@ extension ExpoSwiftUI {
+     }
+ 
+     public var body: some SwiftUI.View {
+-      if #available(iOS 16.0, tvOS 16.0, macOS 13.0, *) {
+-        if proxy !== ShadowNodeProxy.SHADOW_NODE_MOCK_PROXY {
+-          content.overlay {
+-            content.fixedSize(horizontal: axis.contains(.horizontal), vertical: axis.contains(.vertical))
+-              .hidden()
+-              .onGeometryChange(for: CGSize.self, of: { proxy in proxy.size }, action: { size in
+-                var size = size
+-                size.width = axis.contains(.horizontal) ? size.width : ShadowNodeProxy.UNDEFINED_SIZE
+-                size.height = axis.contains(.vertical) ? size.height : ShadowNodeProxy.UNDEFINED_SIZE
+-                proxy.setViewSize?(size)
+-              })
+-          }
+-        } else {
+-          content
+-        }
++      if #available(iOS 17.0, tvOS 17.0, macOS 14.0, *) {
++        // Fix for "Value of type 'some View' has no member 'onGeometryChange'" in Xcode 15.2
++        content
+       } else {
+         // TODO: throw a warning
+         content.onAppear(perform: {
+-          log.warn("AutoSizingStack is not supported on iOS/tvOS < 16.0")
++          log.warn("AutoSizingStack is not supported on iOS/tvOS < 17.0")
+         })
+       }
+     }
+diff --git a/node_modules/expo-modules-core/ios/Core/Views/SwiftUI/SwiftUIHostingView.swift b/node_modules/expo-modules-core/ios/Core/Views/SwiftUI/SwiftUIHostingView.swift
+index 0b879b0..57d0b60 100644
+--- a/node_modules/expo-modules-core/ios/Core/Views/SwiftUI/SwiftUIHostingView.swift
++++ b/node_modules/expo-modules-core/ios/Core/Views/SwiftUI/SwiftUIHostingView.swift
+@@ -23,14 +23,16 @@ extension ExpoSwiftUI {
+   }
+ }
+ 
++public protocol ExpoSwiftUIWithHostingView {
++}
++
+ extension ExpoSwiftUI {
+   internal typealias AnyHostingView = AnyExpoSwiftUIHostingView
+ 
+   /**
+    For a SwiftUI view to self-contain a HostingView, it can conform to the WithHostingView protocol.
+    */
+-  public protocol WithHostingView {
+-  }
++  public typealias WithHostingView = ExpoSwiftUIWithHostingView
+ 
+   /**
+    A hosting view that renders a SwiftUI view inside the UIKit view hierarchy.

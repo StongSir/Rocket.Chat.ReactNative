@@ -1,0 +1,50 @@
+diff --git a/node_modules/expo-notifications/ios/EXNotifications/Notifications/Categories/CategoriesModule.swift b/node_modules/expo-notifications/ios/EXNotifications/Notifications/Categories/CategoriesModule.swift
+index f5a59b9..c39d66e 100644
+--- a/node_modules/expo-notifications/ios/EXNotifications/Notifications/Categories/CategoriesModule.swift
++++ b/node_modules/expo-notifications/ios/EXNotifications/Notifications/Categories/CategoriesModule.swift
+@@ -49,16 +49,16 @@ open class CategoriesModule: Module {
+   public func definition() -> ModuleDefinition {
+     Name("ExpoNotificationCategoriesModule")
+ 
+-    AsyncFunction("getNotificationCategoriesAsync") {
++    AsyncFunction("getNotificationCategoriesAsync") { () -> [CategoryRecord] in
+       let categories = await UNUserNotificationCenter.current().notificationCategories()
+       return filterAndSerializeCategories(categories)
+     }
+ 
+-    AsyncFunction("setNotificationCategoryAsync") { (identifier: String, actions: [CategoryActionRecord], options: CategoryOptionsRecord?) in
++    AsyncFunction("setNotificationCategoryAsync") { (identifier: String, actions: [CategoryActionRecord], options: CategoryOptionsRecord?) -> CategoryRecord in
+       return await setNotificationCategoryAsync(identifier: identifier, actions: actions, options: options)
+     }
+ 
+-    AsyncFunction("deleteNotificationCategoryAsync") { (identifier: String) in
++    AsyncFunction("deleteNotificationCategoryAsync") { (identifier: String) -> Bool in
+       return await deleteNotificationCategoryAsync(identifier: identifier)
+     }
+   }
+diff --git a/node_modules/expo-notifications/ios/EXNotifications/Notifications/Presenting/PresentationModule.swift b/node_modules/expo-notifications/ios/EXNotifications/Notifications/Presenting/PresentationModule.swift
+index 6f137fc..b0fe0e3 100644
+--- a/node_modules/expo-notifications/ios/EXNotifications/Notifications/Presenting/PresentationModule.swift
++++ b/node_modules/expo-notifications/ios/EXNotifications/Notifications/Presenting/PresentationModule.swift
+@@ -9,7 +9,7 @@ open class PresentationModule: Module {
+   public func definition() -> ModuleDefinition {
+     Name("ExpoNotificationPresenter")
+ 
+-    AsyncFunction("getPresentedNotificationsAsync") {
++    AsyncFunction("getPresentedNotificationsAsync") { () -> [[String: Any]] in
+       let notifications = await UNUserNotificationCenter.current().deliveredNotifications()
+       return self.serializeNotifications(notifications)
+     }
+diff --git a/node_modules/expo-notifications/ios/EXNotifications/Notifications/Scheduling/SchedulerModule.swift b/node_modules/expo-notifications/ios/EXNotifications/Notifications/Scheduling/SchedulerModule.swift
+index 7a99e68..0341a44 100644
+--- a/node_modules/expo-notifications/ios/EXNotifications/Notifications/Scheduling/SchedulerModule.swift
++++ b/node_modules/expo-notifications/ios/EXNotifications/Notifications/Scheduling/SchedulerModule.swift
+@@ -24,7 +24,7 @@ open class SchedulerModule: Module {
+   public func definition() -> ModuleDefinition {
+     Name("ExpoNotificationScheduler")
+ 
+-    AsyncFunction("getAllScheduledNotificationsAsync") {
++    AsyncFunction("getAllScheduledNotificationsAsync") { () -> [[String: Any]] in
+       let requests = await UNUserNotificationCenter.current().pendingNotificationRequests()
+       return serializedNotificationRequests(requests)
+     }
