@@ -4,6 +4,8 @@ import updateMessages from './updateMessages';
 import sdk from '../services/sdk';
 import { store } from '../store/auxStore';
 import { getSubscriptionByRoomId } from '../database/services/Subscription';
+import database from '../database';
+import { Q } from '@nozbe/watermelondb';
 
 const count = 50;
 
@@ -74,12 +76,30 @@ async function load({
 	}
 
 	let lastOpenISOString;
-	if (lastOpen) {
-		lastOpenISOString = new Date(lastOpen).toISOString();
-	} else {
-		const lastUpdate = await getLastUpdate(roomId);
-		lastOpenISOString = lastUpdate?.toISOString();
+
+	// Use the last message timestamp if available
+	try {
+		const db = database.active;
+		const [lastMessage] = await db
+			.get('messages')
+			.query(Q.where('rid', roomId), Q.sortBy('ts', Q.desc), Q.take(1))
+			.fetch();
+		if (lastMessage?.ts) {
+			lastOpenISOString = new Date(lastMessage.ts).toISOString();
+		}
+	} catch (e) {
+		// Do nothing
 	}
+
+	if (!lastOpenISOString) {
+		if (lastOpen) {
+			lastOpenISOString = new Date(lastOpen).toISOString();
+		} else {
+			const lastUpdate = await getLastUpdate(roomId);
+			lastOpenISOString = lastUpdate?.toISOString();
+		}
+	}
+
 	// RC 0.60.0
 	// @ts-ignore // this method dont have type
 	const { result } = await sdk.get('chat.syncMessages', { roomId, lastUpdate: lastOpenISOString });

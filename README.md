@@ -34,3 +34,7 @@ We’d love to hear about [your experience](https://survey.zohopublic.com/zs/e4B
 
 ### Subscribe for Updates
 Once a month our marketing team releases an email update with news about product releases, company related topics, events and use cases. [Sign up!](https://rocket.chat/newsletter/?utm_source=github&utm_medium=readme&utm_campaign=community)
+
+
+### 重大调整备忘录：
+ loadMissedMessages.ts 这个文件 为了处理漏收消息，我尝试调整获取最最后一条聊天记录的时间来刷新数据，不知道是否会有异常先做个记录

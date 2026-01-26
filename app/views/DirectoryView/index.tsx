@@ -251,7 +251,7 @@ class DirectoryView extends React.Component<IDirectoryViewProps, IDirectoryViewS
 		}
 
 		const commonProps = {
-			title: item.name as string,
+			title: (item.fname || item.name) as string,
 			onPress: () => this.onPressItem(item),
 			baseUrl,
 			testID: `directory-view-item-${item.name}`,
@@ -276,7 +276,7 @@ class DirectoryView extends React.Component<IDirectoryViewProps, IDirectoryViewS
 		if (type === 'teams') {
 			return (
 				<DirectoryItem
-					avatar={item.name}
+					avatar={item.fname || item.name}
 					description={item.name}
 					rightLabel={I18n.t('N_channels', { n: item.roomsCount })}
 					type={item.t}
@@ -287,7 +287,7 @@ class DirectoryView extends React.Component<IDirectoryViewProps, IDirectoryViewS
 		}
 		return (
 			<DirectoryItem
-				avatar={item.name}
+				avatar={item.fname || item.name}
 				description={item.topic}
 				rightLabel={I18n.t('N_users', { n: item.usersCount })}
 				type={item.t}

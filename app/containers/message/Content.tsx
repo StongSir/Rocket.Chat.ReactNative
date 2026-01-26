@@ -9,7 +9,7 @@ import User from './User';
 import { messageHaveAuthorName, getInfoMessage } from './utils';
 import MessageContext from './Context';
 import { type IMessageContent } from './interfaces';
-import { useTheme } from '../../theme';
+import { useTheme, ThemeContext } from '../../theme';
 import { themes } from '../../lib/constants/colors';
 import { type MessageTypesValues } from '../../definitions';
 
@@ -97,12 +97,17 @@ const Content = React.memo(
 			]
 			: undefined;
 
+		// Override theme to 'dark' for own messages in light mode to force white text
+		const themeOverride = props.isOwnMessage && theme === 'light' ? 'dark' : theme;
+
 		return content ? (
 			<View
 				style={[bubbleStyle, props.isTemp && styles.temp]}
 				testID={`message-content-${props.msg || ''}`}
 			>
-				{content}
+				<ThemeContext.Provider value={{ theme: themeOverride, colors: themes[themeOverride] }}>
+					{content}
+				</ThemeContext.Provider>
 			</View>
 		) : null;
 	},
