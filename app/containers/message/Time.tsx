@@ -15,7 +15,10 @@ const MessageTime = ({ timeFormat, ts }: IMessageTime) => {
 
 	const { colors } = useTheme();
 
-	const time = dayjs(ts).format(timeFormat);
+	// Check if the message is from today
+	const isToday = dayjs(ts).isSame(dayjs(), 'day');
+	// Today: show time only; Earlier: show full date and time
+	const time = isToday ? dayjs(ts).format(timeFormat) : dayjs(ts).format('YYYY-MM-DD HH:mm');
 
 	return <Text style={[messageStyles.time, { color: colors.fontSecondaryInfo }]}>{time}</Text>;
 };
