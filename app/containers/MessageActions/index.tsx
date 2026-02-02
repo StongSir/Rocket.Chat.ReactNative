@@ -268,7 +268,10 @@ const MessageActions = React.memo(
 
 			const handleCopy = async (message: TAnyMessageModel) => {
 				logEvent(events.ROOM_MSG_ACTION_COPY);
-				await Clipboard.setString((message?.attachments?.[0]?.description || message.msg) ?? '');
+				// For quoted messages, text is in attachment.text; for file attachments, it's in description
+				const attachment = message?.attachments?.[0];
+				const textToCopy = attachment?.text || attachment?.description || message.msg || '';
+				await Clipboard.setString(textToCopy);
 				EventEmitter.emit(LISTENER, { message: I18n.t('Copied_to_clipboard') });
 			};
 
@@ -466,15 +469,6 @@ const MessageActions = React.memo(
 					});
 				}
 
-				// Get link
-				options.push({
-					title: I18n.t('Get_link'),
-					icon: 'link',
-					onPress: () => handlePermalink(message),
-					enabled: !room.abacAttributes,
-					disabledReason: room.abacAttributes && I18n.t('ABAC_disabled_action_reason')
-				});
-
 				// Copy
 				if (!videoConfBlock) {
 					options.push({
@@ -483,6 +477,15 @@ const MessageActions = React.memo(
 						onPress: () => handleCopy(message)
 					});
 				}
+
+				// Get link
+				options.push({
+					title: I18n.t('Get_link'),
+					icon: 'link',
+					onPress: () => handlePermalink(message),
+					enabled: !room.abacAttributes,
+					disabledReason: room.abacAttributes && I18n.t('ABAC_disabled_action_reason')
+				});
 
 				// Share
 				options.push({

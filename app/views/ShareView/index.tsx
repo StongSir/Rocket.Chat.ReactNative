@@ -211,9 +211,16 @@ class ShareView extends Component<IShareViewProps, IShareViewState> {
 				}
 
 				// Set a filename, if there isn't any
-				// Set a filename, if there isn't any
 				if (!item.filename) {
 					item.filename = item?.path?.split('/')?.pop();
+				}
+				// Decode URL-encoded filenames (fixes Chinese filename issue)
+				if (item.filename && item.filename.includes('%')) {
+					try {
+						item.filename = decodeURIComponent(item.filename);
+					} catch {
+						// Keep original if decode fails
+					}
 				}
 				return item;
 			})

@@ -1,5 +1,6 @@
-import React, { useContext } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import React, { useContext, useEffect, useState } from 'react';
+import { Image, StyleSheet, Text, View } from 'react-native';
+import * as VideoThumbnails from 'expo-video-thumbnails';
 
 import { type IUserMessage } from '../../../../definitions';
 import { type IAttachment } from '../../../../definitions/IAttachment';
@@ -9,7 +10,7 @@ import { fileDownload, isIOS } from '../../../../lib/methods/helpers';
 import EventEmitter from '../../../../lib/methods/helpers/events';
 import { useTheme } from '../../../../theme';
 import sharedStyles from '../../../../views/Styles';
-import { type TIconsName } from '../../../CustomIcon';
+import { CustomIcon, type TIconsName } from '../../../CustomIcon';
 import { LISTENER } from '../../../Toast';
 import Markdown from '../../../markdown';
 import MessageContext from '../../Context';
@@ -31,6 +32,17 @@ const styles = StyleSheet.create({
 	text: {
 		...sharedStyles.textRegular,
 		fontSize: 12
+	},
+	thumbnailImage: {
+		width: '100%',
+		height: '100%',
+		borderRadius: 4
+	},
+	playIconContainer: {
+		...StyleSheet.absoluteFillObject,
+		justifyContent: 'center',
+		alignItems: 'center',
+		backgroundColor: 'rgba(0, 0, 0, 0.3)'
 	}
 });
 
@@ -51,11 +63,31 @@ const CancelIndicator = () => {
 	);
 };
 
-const Thumbnail = ({ status, encrypted = false }: { status: TDownloadState; encrypted: boolean }) => {
+const Thumbnail = ({
+	status,
+	encrypted = false,
+	thumbnailUri
+}: {
+	status: TDownloadState;
+	encrypted: boolean;
+	thumbnailUri?: string;
+}) => {
 	const { colors } = useTheme();
 	let icon: TIconsName = status === 'downloaded' ? 'play-filled' : 'arrow-down-circle';
 	if (encrypted && status === 'downloaded') {
 		icon = 'encrypted';
+	}
+
+	// If we have a thumbnail, show it with a play icon overlay
+	if (thumbnailUri && status === 'downloaded') {
+		return (
+			<View style={[messageStyles.image, { borderColor: colors.strokeLight, borderWidth: 1 }]}>
+				<Image source={{ uri: thumbnailUri }} style={styles.thumbnailImage} resizeMode='cover' />
+				<View style={styles.playIconContainer}>
+					<CustomIcon name={icon} size={54} color='#FFFFFF' />
+				</View>
+			</View>
+		);
 	}
 
 	return (
@@ -76,6 +108,25 @@ const Video = ({ file, showAttachment, getCustomEmoji, author, msg }: IMessageVi
 	const { user } = useContext(MessageContext);
 	const { colors } = useTheme();
 	const { status, onPress, url, isEncrypted, currentFile } = useMediaAutoDownload({ file, author, showAttachment });
+	const [thumbnailUri, setThumbnailUri] = useState<string | undefined>(undefined);
+
+	// Generate thumbnail when video is downloaded
+	useEffect(() => {
+		const generateThumbnail = async () => {
+			if (status === 'downloaded' && currentFile.title_link && !isEncrypted) {
+				try {
+					const { uri } = await VideoThumbnails.getThumbnailAsync(currentFile.title_link, {
+						time: 0
+					});
+					setThumbnailUri(uri);
+				} catch (e) {
+					// Failed to generate thumbnail, will show default overlay
+					console.log('Failed to generate video thumbnail:', e);
+				}
+			}
+		};
+		generateThumbnail();
+	}, [status, currentFile.title_link, isEncrypted]);
 
 	const _onPress = async () => {
 		if (currentFile.video_type && !isTypeSupported(currentFile.video_type)) {
@@ -104,7 +155,7 @@ const Video = ({ file, showAttachment, getCustomEmoji, author, msg }: IMessageVi
 		<View style={{ gap: 4 }}>
 			{msg ? <Markdown msg={msg} username={user.username} getCustomEmoji={getCustomEmoji} /> : null}
 			<Touchable onPress={_onPress} style={messageStyles.image} background={Touchable.Ripple(colors.surfaceNeutral)}>
-				<Thumbnail status={status} encrypted={isEncrypted} />
+				<Thumbnail status={status} encrypted={isEncrypted} thumbnailUri={thumbnailUri} />
 			</Touchable>
 		</View>
 	);

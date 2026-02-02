@@ -17,6 +17,7 @@ import MessageContext from '../../Context';
 import Touchable from '../../Touchable';
 import messageStyles from '../../styles';
 import dayjs from '../../../../lib/dayjs';
+import { CustomIcon } from '../../../CustomIcon';
 
 // Decode URL-encoded filenames (fixes Chinese filename display issue)
 const decodeFilename = (filename: string | undefined): string | undefined => {
@@ -33,12 +34,34 @@ const decodeFilename = (filename: string | undefined): string | undefined => {
 };
 
 const styles = StyleSheet.create({
+	// Base button style
 	button: {
 		flex: 1,
 		flexDirection: 'row',
 		alignItems: 'center',
-		alignSelf: 'flex-start',
-		borderLeftWidth: 2
+		alignSelf: 'flex-start'
+	},
+	// Style for quoted messages - dashed border
+	quoteButton: {
+		borderWidth: 1,
+		borderStyle: 'dashed',
+		borderRadius: 8,
+		padding: 8
+	},
+	// Style for file attachments - simple row with icon
+	fileButton: {
+		paddingVertical: 8,
+		paddingHorizontal: 12,
+		borderRadius: 8,
+		gap: 8
+	},
+	fileIcon: {
+		marginRight: 4
+	},
+	fileName: {
+		flex: 1,
+		fontSize: 14,
+		...sharedStyles.textMedium
 	},
 	attachmentContainer: {
 		flex: 1,
@@ -118,7 +141,13 @@ const Title = React.memo(
 	({ attachment, timeFormat, theme }: { attachment: IAttachment; timeFormat?: string; theme: TSupportedThemes }) => {
 		'use memo';
 
-		const time = attachment.message_link && attachment.ts ? dayjs(attachment.ts).format(timeFormat) : null;
+		// Format time: show only time for today, show full date+time for older messages
+		let time: string | null = null;
+		if (attachment.message_link && attachment.ts) {
+			const messageDate = dayjs(attachment.ts);
+			const isToday = messageDate.isSame(dayjs(), 'day');
+			time = isToday ? messageDate.format(timeFormat) : messageDate.format('YYYY-MM-DD HH:mm');
+		}
 		return (
 			<View style={styles.authorContainer}>
 				{attachment.author_name ? (
@@ -231,12 +260,14 @@ const Reply = React.memo(
 			return null;
 		}
 
+		const isFileAttachment = attachment.type === 'file';
+
 		const onPress = async () => {
 			let url = attachment.title_link || attachment.author_link;
 			if (!url) {
 				return;
 			}
-			if (attachment.type === 'file' && attachment.title_link) {
+			if (isFileAttachment && attachment.title_link) {
 				setLoading(true);
 				url = formatAttachmentUrl(attachment.title_link, user.id, user.token, baseUrl);
 				await fileDownloadAndPreview(url, attachment, id);
@@ -251,6 +282,39 @@ const Reply = React.memo(
 			strokeLight = attachment.color;
 		}
 
+		// File attachment: simple icon + filename display
+		if (isFileAttachment) {
+			return (
+				<View style={{ gap: 4, marginBottom: 8 }}>
+					<Touchable
+						testID={`file-${attachment?.title}`}
+						onPress={onPress}
+						style={[
+							styles.button,
+							styles.fileButton,
+							{
+								backgroundColor: themes[theme].surfaceNeutral,
+								alignSelf: isOwnMessage ? 'flex-end' : 'flex-start'
+							}
+						]}
+						background={Touchable.Ripple(themes[theme].surfaceHover)}>
+						<View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+							<CustomIcon name='file-document' size={20} color={themes[theme].fontSecondaryInfo} />
+							<Text
+								style={[styles.fileName, { color: themes[theme].fontDefault }]}
+								numberOfLines={1}
+								ellipsizeMode='middle'>
+								{decodeFilename(attachment.title)}
+							</Text>
+							{loading ? <RCActivityIndicator size={16} /> : null}
+						</View>
+					</Touchable>
+					{msg ? <Markdown msg={msg} username={user.username} getCustomEmoji={getCustomEmoji} /> : null}
+				</View>
+			);
+		}
+
+		// Quoted message: dashed border with full content
 		return (
 			<View style={{ gap: 4, marginBottom: 8 }}>
 				<Touchable
@@ -258,6 +322,7 @@ const Reply = React.memo(
 					onPress={onPress}
 					style={[
 						styles.button,
+						styles.quoteButton,
 						{
 							borderColor: strokeLight,
 							alignSelf: isOwnMessage ? 'flex-end' : 'flex-start'

@@ -94,8 +94,17 @@ export const useChooseMedia = ({
 			const res = await DocumentPicker.getDocumentAsync({ copyToCacheDirectory: false });
 			if (!res.canceled) {
 				const [asset] = res.assets;
+				// Decode filename to fix Chinese/special character encoding issue
+				let decodedFilename = asset.name;
+				try {
+					if (decodedFilename && decodedFilename.includes('%')) {
+						decodedFilename = decodeURIComponent(decodedFilename);
+					}
+				} catch {
+					// Keep original if decode fails
+				}
 				const file = {
-					filename: asset.name,
+					filename: decodedFilename,
 					size: asset.size,
 					mime: asset.mimeType,
 					path: asset.uri
