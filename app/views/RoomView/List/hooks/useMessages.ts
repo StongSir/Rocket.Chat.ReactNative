@@ -29,9 +29,9 @@ export const useMessages = ({
 	const subscription = useRef<Subscription | null>(null);
 	const messagesIds = useRef<string[]>([]);
 
-	const fetchMessages = useCallback(async () => {
+	const fetchMessages = useCallback(async (forceCount?: number) => {
 		unsubscribe();
-		count.current += QUERY_SIZE;
+		count.current = forceCount || (count.current + QUERY_SIZE);
 
 		if (!rid) {
 			return;
@@ -108,5 +108,52 @@ export const useMessages = ({
 		subscription.current?.unsubscribe();
 	};
 
-	return [messages, messagesIds, fetchMessages] as const;
+	const loadMessage = useCallback(async (messageId: string) => {
+		const db = database.active;
+		let message: TAnyMessageModel | null = null;
+
+		if (tmid) {
+			// @ts-ignore
+			message = await db.get('thread_messages').find(messageId).catch(() => null);
+		} else {
+			message = await getMessageById(messageId);
+		}
+
+		if (!message) {
+			return;
+		}
+
+		let countNewer = 0;
+		const messageDate = message.ts instanceof Date ? message.ts.getTime() : new Date(message.ts).getTime();
+		if (tmid) {
+			countNewer = await db.get('thread_messages').query(Q.where('rid', tmid), Q.where('ts', Q.gt(messageDate))).fetchCount();
+		} else {
+			const whereClause = [Q.where('rid', rid), Q.where('ts', Q.gt(messageDate))] as (
+				| Q.WhereDescription
+				| Q.Or
+			)[];
+			if (!showMessageInMainThread) {
+				whereClause.push(Q.or(Q.where('tmid', null), Q.where('tshow', Q.eq(true))));
+			}
+			countNewer = await db.get('messages').query(...whereClause).fetchCount();
+		}
+
+		if (countNewer >= count.current) {
+			fetchMessages(countNewer + 50);
+			await new Promise<void>(resolve => {
+				const interval = setInterval(() => {
+					if (messagesIds.current.includes(messageId)) {
+						clearInterval(interval);
+						resolve();
+					}
+				}, 100);
+				setTimeout(() => {
+					clearInterval(interval);
+					resolve();
+				}, 3000); // 3 seconds timeout
+			});
+		}
+	}, [rid, tmid, showMessageInMainThread, fetchMessages]);
+
+	return [messages, messagesIds, fetchMessages, loadMessage] as const;
 };

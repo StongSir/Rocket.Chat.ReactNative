@@ -8,7 +8,7 @@ import { useMessages, useScroll } from './hooks';
 
 const ListContainer = forwardRef<IListContainerRef, IListContainerProps>(
 	({ rid, tmid, renderRow, showMessageInMainThread, serverVersion, hideSystemMessages, listRef }, ref) => {
-		const [messages, messagesIds, fetchMessages] = useMessages({
+		const [messages, messagesIds, fetchMessages, loadMessage] = useMessages({
 			rid,
 			tmid,
 			showMessageInMainThread,
@@ -17,7 +17,7 @@ const ListContainer = forwardRef<IListContainerRef, IListContainerProps>(
 		});
 		const {
 			jumpToBottom,
-			jumpToMessage,
+			jumpToMessage: scrollJumpToMessage,
 			cancelJumpToMessage,
 			viewabilityConfigCallbackPairs,
 			handleScrollToIndexFailed,
@@ -29,7 +29,10 @@ const ListContainer = forwardRef<IListContainerRef, IListContainerProps>(
 		}, 300);
 
 		useImperativeHandle(ref, () => ({
-			jumpToMessage,
+			jumpToMessage: async (messageId: string) => {
+				await loadMessage(messageId);
+				await scrollJumpToMessage(messageId);
+			},
 			cancelJumpToMessage
 		}));
 
