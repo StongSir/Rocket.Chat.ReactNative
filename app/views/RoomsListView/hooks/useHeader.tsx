@@ -61,6 +61,14 @@ export const useHeader = () => {
 		}
 	}, [isMasterDetail, navigation]);
 
+	const goGlobalSearch = useCallback(() => {
+		if (isMasterDetail) {
+			navigation.navigate('ModalStackNavigator', { screen: 'GlobalSearchView' });
+		} else {
+			navigation.navigate('GlobalSearchView');
+		}
+	}, [isMasterDetail, navigation]);
+
 	const navigateToPushTroubleshootView = useCallback(() => {
 		if (isMasterDetail) {
 			navigation.navigate('ModalStackNavigator', { screen: 'PushTroubleshootView' });
@@ -132,10 +140,17 @@ export const useHeader = () => {
 						/>
 					) : null}
 					<HeaderButton.Item
-						iconName='search'
+						iconName='message'
 						accessibilityLabel={i18n.t('Search')}
 						onPress={startSearch}
 						testID='rooms-list-view-search'
+						disabled={disabled}
+					/>
+					<HeaderButton.Item
+						iconName='search'
+						accessibilityLabel={i18n.t('Search_Messages')}
+						onPress={goGlobalSearch}
+						testID='rooms-list-view-global-search'
 						disabled={disabled}
 					/>
 					<HeaderButton.Item
@@ -162,6 +177,7 @@ export const useHeader = () => {
 		canCreateRoom,
 		searchEnabled,
 		goDirectory,
+		goGlobalSearch,
 		navigateToPushTroubleshootView,
 		getBadge,
 		goToNewMessage,

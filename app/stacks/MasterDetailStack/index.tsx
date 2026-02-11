@@ -20,6 +20,7 @@ import InviteUsersEditView from '../../views/InviteUsersEditView';
 import MessagesView from '../../views/MessagesView';
 import AutoTranslateView from '../../views/AutoTranslateView';
 import DirectoryView from '../../views/DirectoryView';
+import GlobalSearchView from '../../views/GlobalSearchView';
 import NotificationPrefView from '../../views/NotificationPreferencesView';
 import E2EEToggleRoomView from '../../views/E2EEToggleRoomView';
 import PushTroubleshootView from '../../views/PushTroubleshootView';
@@ -148,6 +149,11 @@ const ModalStackNavigator = React.memo(({ navigation }: INavigation) => {
 					name='DirectoryView'
 					// @ts-ignore
 					component={DirectoryView}
+				/>
+				<ModalStack.Screen
+					name='GlobalSearchView'
+					component={GlobalSearchView}
+					options={GlobalSearchView.navigationOptions}
 				/>
 				<ModalStack.Screen name='QueueListView' component={QueueListView} />
 				<ModalStack.Screen name='NotificationPrefView' component={NotificationPrefView} />

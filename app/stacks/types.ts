@@ -27,23 +27,25 @@ export type ChatsStackParamList = {
 	NewMessageStackNavigator: any;
 	NewMessageStack: undefined;
 	RoomsListView: undefined;
+	GlobalSearchView: undefined;
 	RoomView:
-		| {
-				rid: string;
-				t: SubscriptionType;
-				tmid?: string;
-				messageId?: string;
-				name?: string;
-				fname?: string;
-				prid?: string;
-				room?: TSubscriptionModel | { rid: string; t: string; name?: string; fname?: string; prid?: string };
-				jumpToMessageId?: string;
-				jumpToThreadId?: string;
-				roomUserId?: string | null;
-				usedCannedResponse?: string;
-				status?: string;
-		  }
-		| undefined; // Navigates back to RoomView already on stack
+	| {
+		rid: string;
+		t: SubscriptionType;
+		tmid?: string;
+		messageId?: string;
+		name?: string;
+		fname?: string;
+		prid?: string;
+		room?: TSubscriptionModel | { rid: string; t: string; name?: string; fname?: string; prid?: string };
+		jumpToMessageId?: string;
+		jumpToThreadId?: string;
+		roomUserId?: string | null;
+		usedCannedResponse?: string;
+		jumpTs?: number;
+		status?: string;
+	}
+	| undefined; // Navigates back to RoomView already on stack
 	RoomActionsView: {
 		room: TSubscriptionModel;
 		member?: any;

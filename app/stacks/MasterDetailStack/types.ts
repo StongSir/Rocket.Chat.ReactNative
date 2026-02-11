@@ -113,6 +113,7 @@ export type ModalStackParamList = {
 		room: ISubscription;
 	};
 	DirectoryView: undefined;
+	GlobalSearchView: undefined;
 	QueueListView: undefined;
 	NotificationPrefView: {
 		rid: string;

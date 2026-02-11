@@ -300,8 +300,12 @@ class RoomView extends React.Component<IRoomViewProps, IRoomViewState> {
 		const { roomUpdate, joined } = this.state;
 		const { insets, route, encryptionEnabled } = this.props;
 
-		if (route?.params?.jumpToMessageId && route?.params?.jumpToMessageId !== prevProps.route?.params?.jumpToMessageId) {
-			this.jumpToMessage(route?.params?.jumpToMessageId);
+		if (
+			route?.params?.jumpToMessageId &&
+			(route?.params?.jumpToMessageId !== prevProps.route?.params?.jumpToMessageId ||
+				(route?.params?.jumpTs && route?.params?.jumpTs !== prevProps.route?.params?.jumpTs))
+		) {
+			this.jumpToMessage(route.params.jumpToMessageId);
 		}
 
 		if (route?.params?.jumpToThreadId && route?.params?.jumpToThreadId !== prevProps.route?.params?.jumpToThreadId) {
