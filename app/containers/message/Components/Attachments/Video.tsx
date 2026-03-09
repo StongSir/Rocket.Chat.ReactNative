@@ -6,7 +6,7 @@ import { type IUserMessage } from '../../../../definitions';
 import { type IAttachment } from '../../../../definitions/IAttachment';
 import { type TGetCustomEmoji } from '../../../../definitions/IEmoji';
 import I18n from '../../../../i18n';
-import { fileDownload, isIOS } from '../../../../lib/methods/helpers';
+import { fileDownload, isIOS, isTablet } from '../../../../lib/methods/helpers';
 import EventEmitter from '../../../../lib/methods/helpers/events';
 import { useTheme } from '../../../../theme';
 import sharedStyles from '../../../../views/Styles';
@@ -81,7 +81,7 @@ const Thumbnail = ({
 	// If we have a thumbnail, show it with a play icon overlay
 	if (thumbnailUri && status === 'downloaded') {
 		return (
-			<View style={[messageStyles.image, { borderColor: colors.strokeLight, borderWidth: 1 }]}>
+			<View style={{ width: '100%', height: '100%', borderColor: colors.strokeLight, borderWidth: 1, borderRadius: 4, overflow: 'hidden' }}>
 				<Image source={{ uri: thumbnailUri }} style={styles.thumbnailImage} resizeMode='cover' />
 				<View style={styles.playIconContainer}>
 					<CustomIcon name={icon} size={54} color='#FFFFFF' />
@@ -154,7 +154,7 @@ const Video = ({ file, showAttachment, getCustomEmoji, author, msg }: IMessageVi
 	return (
 		<View style={{ gap: 4 }}>
 			{msg ? <Markdown msg={msg} username={user.username} getCustomEmoji={getCustomEmoji} /> : null}
-			<Touchable onPress={_onPress} style={messageStyles.image} background={Touchable.Ripple(colors.surfaceNeutral)}>
+			<Touchable onPress={_onPress} style={[messageStyles.image, { height: isTablet ? 300 : 200 }]} background={Touchable.Ripple(colors.surfaceNeutral)}>
 				<Thumbnail status={status} encrypted={isEncrypted} thumbnailUri={thumbnailUri} />
 			</Touchable>
 		</View>
