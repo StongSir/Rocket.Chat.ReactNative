@@ -59,7 +59,6 @@ const AvatarContainer = ({
 			size={size}
 			borderRadius={borderRadius}
 			type={type}
-			children={children}
 			userId={id}
 			token={token}
 			onPress={onPress}
@@ -74,8 +73,9 @@ const AvatarContainer = ({
 			serverVersion={serverVersion}
 			cdnPrefix={cdnPrefix}
 			accessibilityLabel={accessibilityLabel}
-			accessible={accessible}
-		/>
+			accessible={accessible}>
+			{children}
+		</Avatar>
 	);
 };
 

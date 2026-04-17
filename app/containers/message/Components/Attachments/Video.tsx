@@ -106,7 +106,6 @@ const Video = ({ file, showAttachment, getCustomEmoji, author, msg }: IMessageVi
 	'use memo';
 
 	const { user } = useContext(MessageContext);
-	const { colors } = useTheme();
 	const { status, onPress, url, isEncrypted, currentFile } = useMediaAutoDownload({ file, author, showAttachment });
 	const [thumbnailUri, setThumbnailUri] = useState<string | undefined>(undefined);
 

@@ -328,7 +328,6 @@ const Reply = React.memo(
 							alignSelf: isOwnMessage ? 'flex-end' : 'flex-start'
 						}
 					]}
-					background={Touchable.Ripple(themes[theme].surfaceNeutral)}
 					disabled={!!(loading || attachment.message_link)}>
 					<View style={styles.attachmentContainer}>
 						<View style={styles.titleAndDescriptionContainer}>
@@ -342,7 +341,7 @@ const Reply = React.memo(
 							/>
 							<Fields attachment={attachment} getCustomEmoji={getCustomEmoji} theme={theme} />
 							{loading ? (
-								<View style={[styles.backdrop]}>
+								<View style={styles.backdrop}>
 									<View
 										style={[
 											styles.backdrop,
