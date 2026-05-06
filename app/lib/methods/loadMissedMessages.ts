@@ -11,8 +11,10 @@ import { roomTypeToApiType, type RoomTypes } from './roomTypeToApiType';
 import { generateLoadMoreId } from './helpers/generateLoadMoreId';
 import dayjs from '../dayjs';
 import log from './helpers/log';
+import { getLatestLocalMessageDate } from './helpers/messageHistory';
 
 const count = 50;
+const MISSED_MESSAGES_LOOKBACK = 6 * 60 * 60 * 1000;
 
 const syncMessages = async ({ roomId, next, type }: { roomId: string; next: number; type: 'UPDATED' | 'DELETED' }) => {
 	// @ts-ignore // this method dont have type
@@ -26,25 +28,34 @@ const getSyncMessagesFromCursor = async (
 	updatedNext?: number | null,
 	deletedNext?: number | null
 ) => {
-	const promises = [];
+	let updatedMessages;
+	let deletedMessages;
 
-	if (lastOpen && !updatedNext && !deletedNext) {
-		promises.push(syncMessages({ roomId, next: lastOpen, type: 'UPDATED' }));
-		promises.push(syncMessages({ roomId, next: lastOpen, type: 'DELETED' }));
-	}
-	if (updatedNext) {
-		promises.push(syncMessages({ roomId, next: updatedNext, type: 'UPDATED' }));
-	}
-	if (deletedNext) {
-		promises.push(syncMessages({ roomId, next: deletedNext, type: 'DELETED' }));
+	if (!updatedNext && !deletedNext) {
+		if (!lastOpen) {
+			return {
+				deleted: [],
+				deletedNext: null,
+				updated: [],
+				updatedNext: null
+			};
+		}
+		[updatedMessages, deletedMessages] = await Promise.all([
+			syncMessages({ roomId, next: lastOpen, type: 'UPDATED' }),
+			syncMessages({ roomId, next: lastOpen, type: 'DELETED' })
+		]);
+	} else {
+		[updatedMessages, deletedMessages] = await Promise.all([
+			updatedNext ? syncMessages({ roomId, next: updatedNext, type: 'UPDATED' }) : Promise.resolve(null),
+			deletedNext ? syncMessages({ roomId, next: deletedNext, type: 'DELETED' }) : Promise.resolve(null)
+		]);
 	}
 
-	const [updatedMessages, deletedMessages] = await Promise.all(promises);
 	return {
 		deleted: deletedMessages?.deleted ?? [],
-		deletedNext: deletedMessages?.cursor.next,
+		deletedNext: deletedMessages?.cursor?.next ?? null,
 		updated: updatedMessages?.updated ?? [],
-		updatedNext: updatedMessages?.cursor.next
+		updatedNext: updatedMessages?.cursor?.next ?? null
 	};
 };
 
@@ -54,6 +65,30 @@ const getLastUpdate = async (rid: string) => {
 		return null;
 	}
 	return sub.lastOpen;
+};
+
+const getSyncStart = async (rid: string, lastOpen?: Date): Promise<number | undefined> => {
+	const candidates: number[] = [];
+
+	if (lastOpen) {
+		candidates.push(new Date(lastOpen).getTime());
+	} else {
+		const lastUpdate = await getLastUpdate(rid);
+		if (lastUpdate) {
+			candidates.push(lastUpdate.getTime());
+		}
+	}
+
+	const latestLocalMessageDate = await getLatestLocalMessageDate(rid);
+	if (latestLocalMessageDate) {
+		candidates.push(latestLocalMessageDate.getTime());
+	}
+
+	if (!candidates.length) {
+		return undefined;
+	}
+
+	return Math.max(0, Math.min(...candidates) - MISSED_MESSAGES_LOOKBACK);
 };
 
 /**
@@ -144,13 +179,7 @@ async function load({
 }) {
 	const { version: serverVersion } = store.getState().server;
 	if (compareServerVersion(serverVersion, 'greaterThanOrEqualTo', '7.1.0')) {
-		let lastOpenTimestamp;
-		if (lastOpen) {
-			lastOpenTimestamp = new Date(lastOpen).getTime();
-		} else {
-			const lastUpdate = await getLastUpdate(roomId);
-			lastOpenTimestamp = lastUpdate?.getTime();
-		}
+		const lastOpenTimestamp = await getSyncStart(roomId, lastOpen);
 		const result = await getSyncMessagesFromCursor(roomId, lastOpenTimestamp, updatedNext, deletedNext);
 		return result;
 	}
@@ -209,7 +238,7 @@ export async function loadMissedMessages(args: {
 		await updateMessages({ rid: args.rid, update: updated, remove: deleted });
 
 		if (deletedNext || updatedNext) {
-			loadMissedMessages({
+			await loadMissedMessages({
 				rid: args.rid,
 				lastOpen: args.lastOpen,
 				updatedNext,

@@ -79,6 +79,7 @@ import { loadThreadMessages } from '../../lib/methods/loadThreadMessages';
 import { readMessages } from '../../lib/methods/readMessages';
 import { sendMessage } from '../../lib/methods/sendMessage';
 import { triggerBlockAction } from '../../lib/methods/triggerActions';
+import { getLatestLocalMessageDate } from '../../lib/methods/helpers/messageHistory';
 import {
 	isGroupChat,
 	getUidDirectMessage,
@@ -675,7 +676,12 @@ class RoomView extends React.Component<IRoomViewProps, IRoomViewState> {
 					} else {
 						this.setLastOpen(null);
 					}
-					readMessages(room.rid, newLastOpen, true).catch(e => console.log(e));
+					const latestLocalMessageDate = await getLatestLocalMessageDate(room.rid);
+					const readUntil =
+						latestLocalMessageDate && latestLocalMessageDate.getTime() < newLastOpen.getTime()
+							? latestLocalMessageDate
+							: newLastOpen;
+					readMessages(room.rid, readUntil, true).catch(e => console.log(e));
 				}
 			}
 

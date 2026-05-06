@@ -2,14 +2,44 @@ import dayjs from '../dayjs';
 import { MessageTypeLoad } from '../constants/messageTypeLoad';
 import { type IMessage, type TMessageModel } from '../../definitions';
 import log from './helpers/log';
-import { getMessageById } from '../database/services/Message';
 import { type RoomTypes, roomTypeToApiType } from './roomTypeToApiType';
 import sdk from '../services/sdk';
 import updateMessages from './updateMessages';
 import { generateLoadMoreId } from './helpers/generateLoadMoreId';
+import { getPreviousLocalMessage } from './helpers/messageHistory';
 
 const COUNT = 50;
 const COUNT_LIMIT = COUNT * 10;
+
+async function getHistory(apiType: string, params: Record<string, any>) {
+	switch (apiType) {
+		case 'channels':
+			return sdk.get('channels.history', params);
+		case 'groups':
+			return sdk.get('groups.history', params);
+		case 'im':
+			return sdk.get('im.history', params);
+		default:
+			return null;
+	}
+}
+
+async function hasOlderMessages({
+	apiType,
+	roomId,
+	before
+}: {
+	apiType: string;
+	roomId: string;
+	before: Date | string;
+}): Promise<boolean> {
+	const data = await getHistory(apiType, {
+		roomId,
+		count: 1,
+		latest: new Date(before).toISOString()
+	});
+	return !!(data?.success && data.messages?.length);
+}
 
 async function load({ rid: roomId, latest, t }: { rid: string; latest?: Date; t: RoomTypes }): Promise<IMessage[]> {
 	const apiType = roomTypeToApiType(t);
@@ -19,6 +49,7 @@ async function load({ rid: roomId, latest, t }: { rid: string; latest?: Date; t:
 
 	const allMessages: IMessage[] = [];
 	let mainMessagesCount = 0;
+	let bridgeTargetId: string | undefined;
 
 	async function fetchBatch(lastTs?: string): Promise<void> {
 		if (allMessages.length >= COUNT_LIMIT) {
@@ -27,20 +58,7 @@ async function load({ rid: roomId, latest, t }: { rid: string; latest?: Date; t:
 
 		const params = { roomId, count: COUNT, ...(lastTs && { latest: lastTs }) };
 
-		let data;
-		switch (apiType) {
-			case 'channels':
-				data = await sdk.get('channels.history', params);
-				break;
-			case 'groups':
-				data = await sdk.get('groups.history', params);
-				break;
-			case 'im':
-				data = await sdk.get('im.history', params);
-				break;
-			default:
-				return;
-		}
+		const data = await getHistory(apiType, params);
 
 		if (!data?.success || !data.messages?.length) {
 			return;
@@ -53,9 +71,18 @@ async function load({ rid: roomId, latest, t }: { rid: string; latest?: Date; t:
 		mainMessagesCount += mainMessagesInBatch.length;
 
 		const needsMoreMainMessages = mainMessagesCount < COUNT;
+		const lastMessage = batch[batch.length - 1];
+		if (!latest && !bridgeTargetId && lastMessage?.ts) {
+			const previousLocalMessage = await getPreviousLocalMessage(roomId, lastMessage.ts);
+			if (previousLocalMessage?.id) {
+				bridgeTargetId = previousLocalMessage.id;
+			}
+		}
 
-		if (needsMoreMainMessages) {
-			const lastMessage = batch[batch.length - 1];
+		const reachedBridgeTarget = !!bridgeTargetId && batch.some(message => message._id === bridgeTargetId);
+		const needsBridgeMessages = !!bridgeTargetId && !reachedBridgeTarget;
+
+		if (needsMoreMainMessages || needsBridgeMessages) {
 			await fetchBatch(lastMessage.ts as string);
 		}
 	}
@@ -76,8 +103,12 @@ export function loadMessagesForRoom(args: {
 			const data = await load(args);
 			if (data?.length) {
 				const lastMessage = data[data.length - 1];
-				const lastMessageRecord = await getMessageById(lastMessage._id as string);
-				if (!lastMessageRecord && (data.length === COUNT || data.length >= COUNT_LIMIT)) {
+				const apiType = roomTypeToApiType(args.t);
+				const shouldAddLoadMore =
+					!!apiType &&
+					!!lastMessage?.ts &&
+					(await hasOlderMessages({ apiType, roomId: args.rid, before: lastMessage.ts as Date }));
+				if (shouldAddLoadMore) {
 					const loadMoreMessage = {
 						_id: generateLoadMoreId(lastMessage._id as string),
 						rid: lastMessage.rid,
