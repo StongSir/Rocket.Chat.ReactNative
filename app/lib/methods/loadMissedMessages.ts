@@ -88,7 +88,13 @@ const getSyncStart = async (rid: string, lastOpen?: Date): Promise<number | unde
 		return undefined;
 	}
 
-	return Math.max(0, Math.min(...candidates) - MISSED_MESSAGES_LOOKBACK);
+	const earliest = Math.min(...candidates);
+	// Dynamic lookback: use 2x the actual gap or max 6 hours, whichever is smaller.
+	// This avoids excessive lookback in active rooms where the gap is short,
+	// while still providing adequate coverage for longer offline periods.
+	const gap = Date.now() - earliest;
+	const lookback = Math.min(gap * 2, MISSED_MESSAGES_LOOKBACK);
+	return Math.max(0, earliest - lookback);
 };
 
 /**

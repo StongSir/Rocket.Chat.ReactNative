@@ -9,6 +9,7 @@ import { generateLoadMoreId } from './helpers/generateLoadMoreId';
 import { getPreviousLocalMessage } from './helpers/messageHistory';
 
 const COUNT = 50;
+const MAX_BRIDGE_ROUNDS = 10;
 
 async function getHistory(apiType: string, params: Record<string, any>) {
 	switch (apiType) {
@@ -49,6 +50,7 @@ async function load({ rid: roomId, latest, t }: { rid: string; latest?: Date; t:
 	const allMessages: IMessage[] = [];
 	let mainMessagesCount = 0;
 	let bridgeTargetId: string | undefined;
+	let bridgeRounds = 0;
 
 	async function fetchBatch(lastTs?: string): Promise<void> {
 		if (allMessages.length >= COUNT) {
@@ -79,9 +81,10 @@ async function load({ rid: roomId, latest, t }: { rid: string; latest?: Date; t:
 		}
 
 		const reachedBridgeTarget = !!bridgeTargetId && batch.some(message => message._id === bridgeTargetId);
-		const needsBridgeMessages = !!bridgeTargetId && !reachedBridgeTarget;
+		const needsBridgeMessages = !!bridgeTargetId && !reachedBridgeTarget && bridgeRounds < MAX_BRIDGE_ROUNDS;
 
 		if (needsMoreMainMessages || needsBridgeMessages) {
+			bridgeRounds++;
 			await fetchBatch(lastMessage.ts as string);
 		}
 	}
