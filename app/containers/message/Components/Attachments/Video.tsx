@@ -105,8 +105,8 @@ const Thumbnail = ({
 const Video = ({ file, showAttachment, getCustomEmoji, author, msg }: IMessageVideo): React.ReactElement | null => {
 	'use memo';
 
-	const { user } = useContext(MessageContext);
 	const { colors } = useTheme();
+	const { user } = useContext(MessageContext);
 	const { status, onPress, url, isEncrypted, currentFile } = useMediaAutoDownload({ file, author, showAttachment });
 	const [thumbnailUri, setThumbnailUri] = useState<string | undefined>(undefined);
 
@@ -154,7 +154,7 @@ const Video = ({ file, showAttachment, getCustomEmoji, author, msg }: IMessageVi
 	return (
 		<View style={{ gap: 4 }}>
 			{msg ? <Markdown msg={msg} username={user.username} getCustomEmoji={getCustomEmoji} /> : null}
-			<Touchable onPress={_onPress} style={[messageStyles.image, { height: isTablet ? 300 : 200 }]} background={Touchable.Ripple(colors.surfaceNeutral)}>
+			<Touchable onPress={_onPress} style={[messageStyles.image, { height: isTablet ? 300 : 200 }]}>
 				<Thumbnail status={status} encrypted={isEncrypted} thumbnailUri={thumbnailUri} />
 			</Touchable>
 		</View>

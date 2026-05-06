@@ -296,8 +296,7 @@ const Reply = React.memo(
 								backgroundColor: themes[theme].surfaceNeutral,
 								alignSelf: isOwnMessage ? 'flex-end' : 'flex-start'
 							}
-						]}
-						background={Touchable.Ripple(themes[theme].surfaceHover)}>
+						]}>
 						<View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
 							<CustomIcon name='file-document' size={20} color={themes[theme].fontSecondaryInfo} />
 							<Text
@@ -328,7 +327,6 @@ const Reply = React.memo(
 							alignSelf: isOwnMessage ? 'flex-end' : 'flex-start'
 						}
 					]}
-					background={Touchable.Ripple(themes[theme].surfaceNeutral)}
 					disabled={!!(loading || attachment.message_link)}>
 					<View style={styles.attachmentContainer}>
 						<View style={styles.titleAndDescriptionContainer}>
@@ -342,7 +340,7 @@ const Reply = React.memo(
 							/>
 							<Fields attachment={attachment} getCustomEmoji={getCustomEmoji} theme={theme} />
 							{loading ? (
-								<View style={[styles.backdrop]}>
+								<View style={styles.backdrop}>
 									<View
 										style={[
 											styles.backdrop,

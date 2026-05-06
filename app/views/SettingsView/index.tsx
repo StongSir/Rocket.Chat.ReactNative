@@ -200,14 +200,7 @@ const SettingsView = (): React.ReactElement => {
 
 				<List.Section>
 					<List.Separator />
-					<List.Item
-						title='Get_help'
-						left={() => <List.Icon name='support' />}
-						showActionIndicator
-						onPress={() => navigateToScreen('GetHelpView')}
-						testID='settings-view-get-help'
-					/>
-					<List.Separator />
+
 					<List.Item
 						title='Share_this_app'
 						showActionIndicator
@@ -216,41 +209,7 @@ const SettingsView = (): React.ReactElement => {
 						left={() => <List.Icon name='arrow-forward' />}
 					/>
 					<List.Separator />
-					<List.Item
-						title='Legal'
-						showActionIndicator
-						onPress={() => navigateToScreen('LegalView')}
-						testID='settings-view-legal'
-						left={() => <List.Icon name='book' />}
-					/>
-					<List.Separator />
-					<List.Item
-						title='Contact_us'
-						accessibilityRole='link'
-						onPress={sendEmail}
-						testID='settings-view-contact'
-						left={() => <List.Icon name='mail' />}
-						right={() => <NewWindowIcon />}
-					/>
-					<List.Separator />
-					<List.Item
-						title='Review_this_app'
-						accessibilityRole='link'
-						onPress={onReviewPress}
-						testID='settings-view-review-app'
-						left={() => <List.Icon name='star' />}
-						right={() => <NewWindowIcon />}
-					/>
-					<List.Separator />
-					<List.Item
-						title='License'
-						accessibilityRole='link'
-						onPress={onPressLicense}
-						testID='settings-view-license'
-						left={() => <List.Icon name='file-document' />}
-						right={() => <NewWindowIcon />}
-					/>
-					<List.Separator />
+
 					<List.Item
 						title={I18n.t('Version_no', { version: getReadableVersion })}
 						onPress={copyAppVersion}

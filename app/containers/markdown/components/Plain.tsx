@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { Text, Linking } from 'react-native';
 import { type Plain as PlainProps } from '@rocket.chat/message-parser';
 
 import { useTheme } from '../../../theme';
 import styles from '../styles';
-import { themes } from '../../../lib/constants/colors';
+import MarkdownContext from '../contexts/MarkdownContext';
 
 interface IPlainProps {
 	value: PlainProps['value'];
@@ -12,6 +12,7 @@ interface IPlainProps {
 
 const Plain = ({ value }: IPlainProps): React.ReactElement => {
 	const { colors } = useTheme();
+	const { textStyle } = useContext(MarkdownContext);
 
 	if (typeof value === 'string') {
 		// Chinese phone number patterns:
@@ -20,7 +21,7 @@ const Plain = ({ value }: IPlainProps): React.ReactElement => {
 		const chinesePhoneRegex = /(1[3-9]\d{9}|0\d{2,3}[-\s]?\d{7,8})/g;
 		const words = value.split(chinesePhoneRegex);
 		return (
-			<Text accessibilityLabel={value} style={[styles.plainText, { color: colors.fontDefault }]}>
+			<Text accessibilityLabel={value} style={[styles.plainText, { color: colors.fontDefault }, ...(textStyle ? [textStyle] : [])]}>
 				{words.map((word, index) => {
 					// Check if this word matches Chinese phone pattern
 					if (chinesePhoneRegex.test(word)) {
@@ -42,7 +43,7 @@ const Plain = ({ value }: IPlainProps): React.ReactElement => {
 	}
 
 	return (
-		<Text accessibilityLabel={value} style={[styles.plainText, { color: colors.fontDefault }]}>
+		<Text accessibilityLabel={value} style={[styles.plainText, { color: colors.fontDefault }, ...(textStyle ? [textStyle] : [])]}>
 			{value}
 		</Text>
 	);

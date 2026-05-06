@@ -22,7 +22,8 @@ const AvatarContainer = ({
 	rid,
 	accessibilityLabel,
 	accessible,
-	avatarETag
+	avatarETag,
+	fallbackText
 }: IAvatar): React.ReactElement => {
 	const server = useAppSelector(state => state.server.server);
 	const serverVersion = useAppSelector(state => state.server.version);
@@ -59,7 +60,6 @@ const AvatarContainer = ({
 			size={size}
 			borderRadius={borderRadius}
 			type={type}
-			children={children}
 			userId={id}
 			token={token}
 			onPress={onPress}
@@ -75,7 +75,9 @@ const AvatarContainer = ({
 			cdnPrefix={cdnPrefix}
 			accessibilityLabel={accessibilityLabel}
 			accessible={accessible}
-		/>
+			fallbackText={fallbackText}>
+			{children}
+		</Avatar>
 	);
 };
 

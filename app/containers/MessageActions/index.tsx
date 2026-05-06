@@ -407,7 +407,8 @@ const MessageActions = React.memo(
 						title: I18n.t('Edit'),
 						icon: 'edit',
 						onPress: () => handleEdit(message.id),
-						enabled: isEditAllowed
+						enabled: isEditAllowed,
+						testID: 'message-actions-edit'
 					});
 				}
 
@@ -417,7 +418,8 @@ const MessageActions = React.memo(
 					options.push({
 						title: I18n.t('Jump_to_message'),
 						icon: 'jump-to-message',
-						onPress: () => jumpToMessage(quoteMessageLink, true)
+						onPress: () => jumpToMessage(quoteMessageLink, true),
+						testID: 'message-actions-jump-to-message'
 					});
 				}
 
@@ -426,7 +428,8 @@ const MessageActions = React.memo(
 					options.push({
 						title: I18n.t('Quote'),
 						icon: 'quote',
-						onPress: () => handleQuote(message.id)
+						onPress: () => handleQuote(message.id),
+						testID: 'message-actions-quote'
 					});
 				}
 
@@ -435,7 +438,8 @@ const MessageActions = React.memo(
 					options.push({
 						title: I18n.t('Reply_in_Thread'),
 						icon: 'threads',
-						onPress: () => handleReply(message.id)
+						onPress: () => handleReply(message.id),
+						testID: 'message-actions-reply-in-thread'
 					});
 				}
 
@@ -446,7 +450,8 @@ const MessageActions = React.memo(
 						icon: 'arrow-back',
 						onPress: () => handleReplyInDM(message),
 						enabled: permissions.hasCreateDirectMessagePermission && !room.abacAttributes,
-						disabledReason: room.abacAttributes && I18n.t('ABAC_disabled_action_reason')
+						disabledReason: room.abacAttributes && I18n.t('ABAC_disabled_action_reason'),
+						testID: 'message-actions-reply-in-dm'
 					});
 				}
 
@@ -455,7 +460,8 @@ const MessageActions = React.memo(
 					title: I18n.t('Start_a_Discussion'),
 					icon: 'discussions',
 					onPress: () => handleCreateDiscussion(message),
-					enabled: permissions.hasCreateDiscussionOtherUserPermission
+					enabled: permissions.hasCreateDiscussionOtherUserPermission,
+					testID: 'message-actions-create-discussion'
 				});
 
 				// Forward
@@ -465,16 +471,19 @@ const MessageActions = React.memo(
 						icon: 'arrow-forward',
 						onPress: () => handleShareMessage(message),
 						enabled: !room.abacAttributes,
-						disabledReason: room.abacAttributes && I18n.t('ABAC_disabled_action_reason')
+						disabledReason: room.abacAttributes && I18n.t('ABAC_disabled_action_reason'),
+						testID: 'message-actions-forward'
 					});
 				}
+
 
 				// Copy
 				if (!videoConfBlock) {
 					options.push({
 						title: I18n.t('Copy'),
 						icon: 'copy',
-						onPress: () => handleCopy(message)
+						onPress: () => handleCopy(message),
+						testID: 'message-actions-copy'
 					});
 				}
 
@@ -484,14 +493,16 @@ const MessageActions = React.memo(
 					icon: 'link',
 					onPress: () => handlePermalink(message),
 					enabled: !room.abacAttributes,
-					disabledReason: room.abacAttributes && I18n.t('ABAC_disabled_action_reason')
+					disabledReason: room.abacAttributes && I18n.t('ABAC_disabled_action_reason'),
+					testID: 'message-actions-get-link'
 				});
 
 				// Share
 				options.push({
 					title: I18n.t('Share'),
 					icon: 'share',
-					onPress: () => handleShare(message)
+					onPress: () => handleShare(message),
+					testID: 'message-actions-share'
 				});
 
 				// Pin
@@ -500,7 +511,8 @@ const MessageActions = React.memo(
 						title: I18n.t(message.pinned ? 'Unpin' : 'Pin'),
 						icon: 'pin',
 						onPress: () => handlePin(message),
-						enabled: permissions?.hasPinPermission
+						enabled: permissions?.hasPinPermission,
+						testID: `message-actions-${message.pinned ? 'unpin' : 'pin'}`
 					});
 				}
 
@@ -509,7 +521,8 @@ const MessageActions = React.memo(
 					options.push({
 						title: I18n.t(message.starred ? 'Unstar' : 'Star'),
 						icon: message.starred ? 'star-filled' : 'star',
-						onPress: () => handleStar(message.id, message.starred || false)
+						onPress: () => handleStar(message.id, message.starred || false),
+						testID: `message-actions-${message.starred ? 'unstar' : 'star'}`
 					});
 				}
 
@@ -518,7 +531,8 @@ const MessageActions = React.memo(
 					options.push({
 						title: I18n.t('Mark_unread'),
 						icon: 'flag',
-						onPress: () => handleUnread(message)
+						onPress: () => handleUnread(message),
+						testID: 'message-actions-mark-unread'
 					});
 				}
 
@@ -527,7 +541,8 @@ const MessageActions = React.memo(
 					options.push({
 						title: I18n.t('Read_Receipt'),
 						icon: 'info',
-						onPress: () => handleReadReceipt(message)
+						onPress: () => handleReadReceipt(message),
+						testID: 'message-actions-read-receipt'
 					});
 				}
 
@@ -536,7 +551,8 @@ const MessageActions = React.memo(
 					options.push({
 						title: I18n.t(message.autoTranslate !== false ? 'View_Original' : 'Translate'),
 						icon: 'language',
-						onPress: () => handleToggleTranslation(message)
+						onPress: () => handleToggleTranslation(message),
+						testID: 'message-actions-toggle-translation'
 					});
 				}
 
@@ -545,7 +561,8 @@ const MessageActions = React.memo(
 					title: I18n.t('Report'),
 					icon: 'warning',
 					danger: true,
-					onPress: () => handleReport(message)
+					onPress: () => handleReport(message),
+					testID: 'message-actions-report'
 				});
 
 				// Delete
@@ -556,7 +573,8 @@ const MessageActions = React.memo(
 						icon: 'delete',
 						danger: true,
 						onPress: () => handleDelete(message),
-						enabled: isDeleteAllowed
+						enabled: isDeleteAllowed,
+						testID: 'message-actions-delete'
 					});
 				}
 

@@ -7,15 +7,22 @@ import Audio from './Audio';
 import Video from './Video';
 import CollapsibleQuote from './CollapsibleQuote';
 import AttachedActions from './AttachedActions';
+import Reply from './Reply';
 import MessageContext from '../../Context';
 import { type IMessageAttachments } from '../../interfaces';
 import { type IAttachment } from '../../../../definitions';
 import { getMessageFromAttachment } from '../../utils';
-import { Reply } from './components';
 
-// Keep attachments that have media URLs, actions, collapsed, or are file type with title_link
+
+// Keep attachments that have media URLs, actions, collapsed, file type with title_link, or nested attachments
 const removeQuote = (file?: IAttachment) =>
-	file?.image_url || file?.audio_url || file?.video_url || (file?.actions?.length || 0) > 0 || file?.collapsed || (file?.type === 'file' && file?.title_link);
+	file?.image_url ||
+	file?.audio_url ||
+	file?.video_url ||
+	file?.collapsed ||
+	(file?.actions?.length || 0) > 0 ||
+	(file?.type === 'file' && file?.title_link) ||
+	(file?.attachments?.length || 0) > 0;
 
 const Attachments: React.FC<IMessageAttachments> = React.memo(
 	({ attachments, timeFormat, showAttachment, getCustomEmoji, author, isOwnMessage }: IMessageAttachments) => {
@@ -79,9 +86,22 @@ const Attachments: React.FC<IMessageAttachments> = React.memo(
 						attachment={file}
 						timeFormat={timeFormat}
 						getCustomEmoji={getCustomEmoji}
-						msg={msg}
 						showAttachment={showAttachment}
+						msg={msg}
 						isOwnMessage={isOwnMessage}
+					/>
+				);
+			}
+
+			if (file.attachments?.length) {
+				return (
+					<Reply
+						key={index}
+						attachment={file}
+						timeFormat={timeFormat}
+						getCustomEmoji={getCustomEmoji}
+						showAttachment={showAttachment}
+						msg={msg}
 					/>
 				);
 			}

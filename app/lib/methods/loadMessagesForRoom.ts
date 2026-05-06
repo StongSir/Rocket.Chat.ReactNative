@@ -9,7 +9,6 @@ import { generateLoadMoreId } from './helpers/generateLoadMoreId';
 import { getPreviousLocalMessage } from './helpers/messageHistory';
 
 const COUNT = 50;
-const COUNT_LIMIT = COUNT * 10;
 
 async function getHistory(apiType: string, params: Record<string, any>) {
 	switch (apiType) {
@@ -52,11 +51,11 @@ async function load({ rid: roomId, latest, t }: { rid: string; latest?: Date; t:
 	let bridgeTargetId: string | undefined;
 
 	async function fetchBatch(lastTs?: string): Promise<void> {
-		if (allMessages.length >= COUNT_LIMIT) {
+		if (allMessages.length >= COUNT) {
 			return;
 		}
 
-		const params = { roomId, count: COUNT, ...(lastTs && { latest: lastTs }) };
+		const params = { roomId, showThreadMessages: false, count: COUNT, ...(lastTs && { latest: lastTs }) };
 
 		const data = await getHistory(apiType, params);
 
