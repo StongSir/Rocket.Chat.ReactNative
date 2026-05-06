@@ -1,6 +1,7 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 import * as VideoThumbnails from 'expo-video-thumbnails';
+import { getMediaCache } from '../../../../lib/methods/handleMediaDownload';
 
 import { type IUserMessage } from '../../../../definitions';
 import { type IAttachment } from '../../../../definitions/IAttachment';
@@ -113,9 +114,24 @@ const Video = ({ file, showAttachment, getCustomEmoji, author, msg }: IMessageVi
 	// Generate thumbnail when video is downloaded
 	useEffect(() => {
 		const generateThumbnail = async () => {
-			if (status === 'downloaded' && currentFile.title_link && !isEncrypted) {
+			if (status === 'downloaded' && !isEncrypted) {
 				try {
-					const { uri } = await VideoThumbnails.getThumbnailAsync(currentFile.title_link, {
+					// Try to get the local cached file path for thumbnail generation
+					let videoLocalUri = currentFile.title_link;
+					if (!videoLocalUri || (!videoLocalUri.startsWith('file://') && !videoLocalUri.startsWith('/'))) {
+						// currentFile.title_link may not have the local path for persisted messages,
+						// so we fallback to checking the media cache directly
+						const cachedFile = await getMediaCache({
+							type: 'video',
+							mimeType: currentFile.video_type,
+							urlToCache: url
+						});
+						if (cachedFile?.exists) {
+							videoLocalUri = cachedFile.uri;
+						}
+					}
+					if (!videoLocalUri) return;
+					const { uri } = await VideoThumbnails.getThumbnailAsync(videoLocalUri, {
 						time: 0
 					});
 					setThumbnailUri(uri);
@@ -126,7 +142,7 @@ const Video = ({ file, showAttachment, getCustomEmoji, author, msg }: IMessageVi
 			}
 		};
 		generateThumbnail();
-	}, [status, currentFile.title_link, isEncrypted]);
+	}, [status, currentFile.title_link, isEncrypted, url]);
 
 	const _onPress = async () => {
 		if (currentFile.video_type && !isTypeSupported(currentFile.video_type)) {

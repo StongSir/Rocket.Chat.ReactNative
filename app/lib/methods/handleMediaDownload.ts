@@ -213,7 +213,12 @@ const mapAttachments = ({
 }): TMessageModel['attachments'] =>
 	attachments?.map(att => ({
 		...att,
-		title_link: att.image_url && downloadUrl.includes(att.image_url) ? uri : att.title_link,
+		title_link:
+			(att.image_url && downloadUrl.includes(att.image_url)) ||
+			(att.video_url && downloadUrl.includes(att.video_url)) ||
+			(att.audio_url && downloadUrl.includes(att.audio_url))
+				? uri
+				: att.title_link,
 		e2e: encryption ? 'done' : undefined
 	}));
 
