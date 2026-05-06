@@ -476,16 +476,6 @@ const MessageActions = React.memo(
 					});
 				}
 
-				// Get link
-				options.push({
-					title: I18n.t('Get_link'),
-					icon: 'link',
-					onPress: () => handlePermalink(message),
-					enabled: !room.abacAttributes,
-					disabledReason: room.abacAttributes && I18n.t('ABAC_disabled_action_reason'),
-					testID: 'message-actions-get-link'
-				});
-
 
 				// Copy
 				if (!videoConfBlock) {
@@ -503,7 +493,8 @@ const MessageActions = React.memo(
 					icon: 'link',
 					onPress: () => handlePermalink(message),
 					enabled: !room.abacAttributes,
-					disabledReason: room.abacAttributes && I18n.t('ABAC_disabled_action_reason')
+					disabledReason: room.abacAttributes && I18n.t('ABAC_disabled_action_reason'),
+					testID: 'message-actions-get-link'
 				});
 
 				// Share

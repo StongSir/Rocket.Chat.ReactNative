@@ -36,7 +36,8 @@ const Avatar = React.memo(
 		roomAvatarExternalProviderUrl,
 		cdnPrefix,
 		accessibilityLabel,
-		accessible = true
+		accessible = true,
+		fallbackText
 	}: IAvatar) => {
 		if ((!text && !avatar && !emoji && !rid) || !server) {
 			return null;
@@ -49,8 +50,9 @@ const Avatar = React.memo(
 			borderRadius
 		};
 
-		// Check if text contains Chinese characters
-		const isChinese = /[\u4e00-\u9fa5]/.test(text || '');
+		// Check if text or fallbackText contains Chinese characters
+		const displayString = fallbackText || text || '';
+		const isChinese = /[\u4e00-\u9fa5]/.test(displayString);
 
 		// Local fallback for Chinese names without custom avatar
 		const renderLocalAvatar = () => {
@@ -64,11 +66,16 @@ const Avatar = React.memo(
 			};
 
 			return (
-				<View style={[avatarStyle, { backgroundColor: getColor(text || ''), alignItems: 'center', justifyContent: 'center' }]}>
-					<Text style={{ color: '#fff', fontSize: size / 2, fontWeight: 'bold' }}>{(text || '').slice(0, 1)}</Text>
+				<View style={[avatarStyle, { backgroundColor: getColor(displayString), alignItems: 'center', justifyContent: 'center' }]}>
+					<Text style={{ color: '#fff', fontSize: size / 2, fontWeight: 'bold' }}>{displayString.slice(0, 1)}</Text>
 				</View>
 			);
 		};
+
+		// Determine if we should use local avatar
+		// Option A: Force local avatar for Teams/Channels IF their name contains Chinese (to avoid Pinyin/garbled text).
+		// We NEVER force local avatar for DIRECT messages so their custom user avatars are always preserved.
+		const shouldUseLocalAvatar = type !== SubscriptionType.DIRECT && isChinese;
 
 		let image;
 		if (emoji) {
@@ -84,14 +91,15 @@ const Avatar = React.memo(
 					/>
 				</MarkdownContext.Provider>
 			);
+		} else if (shouldUseLocalAvatar) {
+			// Chinese name without custom avatar - use local fallback immediately
+			// Must be checked BEFORE avatarLoaded to avoid showing placeholder then garbled server SVG
+			image = renderLocalAvatar();
 		} else if (avatarLoaded === false) {
 			// Still loading avatarETag, show empty placeholder
 			image = (
 				<View style={[avatarStyle, { backgroundColor: '#E1E5E8', alignItems: 'center', justifyContent: 'center' }]} />
 			);
-		} else if (isChinese && !avatarETag && !avatar) {
-			// Chinese name without custom avatar - use local fallback
-			image = renderLocalAvatar();
 		} else {
 			let uri = avatar;
 			if (!isStatic) {
@@ -147,3 +155,4 @@ const Avatar = React.memo(
 );
 
 export default Avatar;
+

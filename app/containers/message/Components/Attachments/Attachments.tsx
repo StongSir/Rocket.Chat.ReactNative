@@ -12,7 +12,7 @@ import MessageContext from '../../Context';
 import { type IMessageAttachments } from '../../interfaces';
 import { type IAttachment } from '../../../../definitions';
 import { getMessageFromAttachment } from '../../utils';
-import { Reply } from './components';
+
 
 // Keep attachments that have media URLs, actions, collapsed, file type with title_link, or nested attachments
 const removeQuote = (file?: IAttachment) =>

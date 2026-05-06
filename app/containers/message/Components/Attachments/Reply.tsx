@@ -296,8 +296,7 @@ const Reply = React.memo(
 								backgroundColor: themes[theme].surfaceNeutral,
 								alignSelf: isOwnMessage ? 'flex-end' : 'flex-start'
 							}
-						]}
-						background={Touchable.Ripple(themes[theme].surfaceHover)}>
+						]}>
 						<View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
 							<CustomIcon name='file-document' size={20} color={themes[theme].fontSecondaryInfo} />
 							<Text

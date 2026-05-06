@@ -96,6 +96,7 @@ const RoomItem = ({
 				accessibilityLabel={accessibilityLabel}
 				avatar={avatar}
 				avatarETag={avatarETag}
+				name={name}
 				type={type}
 				userId={userId}
 				rid={rid}
