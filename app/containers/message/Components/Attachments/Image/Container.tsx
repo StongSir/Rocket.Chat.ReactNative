@@ -17,12 +17,13 @@ const ImageContainer = ({
 	msg,
 	imagePreview,
 	imageType,
-	isOwnMessage
+	isOwnMessage,
+	attachmentIndex
 }: IImageContainer): React.ReactElement | null => {
 	'use memo';
 
 	const { user } = useContext(MessageContext);
-	const { status, onPress, url, isEncrypted } = useMediaAutoDownload({ file, author, showAttachment });
+	const { status, onPress, url, isEncrypted } = useMediaAutoDownload({ file, author, showAttachment, attachmentIndex });
 
 	const image = (
 		<Button onPress={onPress}>

@@ -51,11 +51,13 @@ const getOriginalURL = (file: IAttachment): string | null => {
 export const useMediaAutoDownload = ({
 	file,
 	author,
-	showAttachment
+	showAttachment,
+	attachmentIndex
 }: {
 	file: IAttachment;
 	author?: IUserMessage;
 	showAttachment?: Function;
+	attachmentIndex?: number;
 }) => {
 	'use memo';
 
@@ -175,7 +177,7 @@ export const useMediaAutoDownload = ({
 		if (!showAttachment || !currentFile.title_link || isEncrypted) {
 			return;
 		}
-		showAttachment(currentFile);
+		showAttachment(currentFile, { messageId: id, attachmentIndex });
 	};
 
 	return {

@@ -1,7 +1,7 @@
-import React, { useRef, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { type LayoutChangeEvent, StyleSheet, type StyleProp, type ViewStyle, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { withTiming, useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
+import Animated, { withTiming, useSharedValue, useAnimatedStyle, withSpring, runOnJS } from 'react-native-reanimated';
 import { Image, type ImageStyle } from 'expo-image';
 
 import Touch from '../Touch';
@@ -18,6 +18,7 @@ interface ImageViewerProps {
 	width: number;
 	height: number;
 	onLoadEnd?: () => void;
+	onZoomStateChange?: (isZoomed: boolean) => void;
 }
 
 const styles = StyleSheet.create({
@@ -29,10 +30,27 @@ const styles = StyleSheet.create({
 	}
 });
 
-export const ImageViewer = ({ uri = '', width, height, ...props }: ImageViewerProps): React.ReactElement => {
+export const ImageViewer = ({ uri = '', width, height, onZoomStateChange, ...props }: ImageViewerProps): React.ReactElement => {
 	const [autoplayGifs] = useUserPreferences<boolean>(AUTOPLAY_GIFS_PREFERENCES_KEY, true);
 	const [isPlaying, setIsPlaying] = useState<boolean>(!!autoplayGifs);
 	const expoImageRef = useRef<Image>(null);
+
+	// Track zoom state internally to control pan gesture
+	const [isPanEnabled, setIsPanEnabled] = useState(false);
+
+	// Track last notified zoom state to avoid redundant calls
+	const lastZoomNotified = useRef(false);
+
+	const notifyZoomState = useCallback(
+		(isZoomed: boolean) => {
+			setIsPanEnabled(isZoomed);
+			if (lastZoomNotified.current !== isZoomed) {
+				lastZoomNotified.current = isZoomed;
+				onZoomStateChange?.(isZoomed);
+			}
+		},
+		[onZoomStateChange]
+	);
 
 	const handleGifPlayback = async () => {
 		if (isPlaying) {
@@ -75,6 +93,7 @@ export const ImageViewer = ({ uri = '', width, height, ...props }: ImageViewerPr
 		scale.value = withSpring(1);
 		translationX.value = withSpring(0, { overshootClamping: true });
 		translationY.value = withSpring(0, { overshootClamping: true });
+		runOnJS(notifyZoomState)(false);
 	};
 
 	const clamp = (value: number, min: number, max: number) => {
@@ -89,10 +108,12 @@ export const ImageViewer = ({ uri = '', width, height, ...props }: ImageViewerPr
 		})
 		.onEnd(() => {
 			scaleOffset.value = scale.value > 0 ? scale.value : 1;
+			runOnJS(notifyZoomState)(scale.value > 1);
 		});
 
 	const panGesture = Gesture.Pan()
 		.maxPointers(2)
+		.enabled(isPanEnabled)
 		.onStart(() => {
 			translationX.value = offsetX.value;
 			translationY.value = offsetY.value;
@@ -113,12 +134,14 @@ export const ImageViewer = ({ uri = '', width, height, ...props }: ImageViewerPr
 		.maxDelay(120)
 		.maxDistance(70)
 		.onEnd(event => {
-			if (scaleOffset.value > 1) resetScaleAnimation();
-			else {
+			if (scaleOffset.value > 1) {
+				resetScaleAnimation();
+			} else {
 				scale.value = withTiming(2, { duration: 200 });
 				translationX.value = withTiming(centerX - event.x, { duration: 200 });
 				offsetX.value = centerX - event.x;
 				scaleOffset.value = 2;
+				runOnJS(notifyZoomState)(true);
 			}
 		});
 

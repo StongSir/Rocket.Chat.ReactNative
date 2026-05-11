@@ -11,6 +11,7 @@ export interface IImageContainer {
 	imagePreview?: string;
 	imageType?: string;
 	isOwnMessage?: boolean;
+	attachmentIndex?: number;
 }
 
 export interface IMessageImage {

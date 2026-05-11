@@ -39,6 +39,8 @@ const Attachments: React.FC<IMessageAttachments> = React.memo(
 		const attachmentsElements = nonQuoteAttachments.map((file: IAttachment, index: number) => {
 			const msg = getMessageFromAttachment(file, translateLanguage);
 			if (file && file.image_url) {
+				// Use original index from unfiltered attachments array for gallery positioning
+				const originalIndex = attachments?.indexOf(file) ?? index;
 				return (
 					<Image
 						key={file.image_url}
@@ -50,6 +52,7 @@ const Attachments: React.FC<IMessageAttachments> = React.memo(
 						imagePreview={file.image_preview}
 						imageType={file.image_type}
 						isOwnMessage={isOwnMessage}
+						attachmentIndex={originalIndex}
 					/>
 				);
 			}
