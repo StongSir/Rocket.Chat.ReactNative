@@ -3,6 +3,7 @@ import { type ViewToken, type ViewabilityConfigCallbackPairs } from 'react-nativ
 
 import { type IListContainerRef, type IListProps, type TListRef, type TMessagesIdsRef } from '../definitions';
 import { VIEWABILITY_CONFIG } from '../constants';
+import { debugSearchJump } from '../../../../lib/methods/helpers/debugSearchJump';
 
 export const useScroll = ({ listRef, messagesIds }: { listRef: TListRef; messagesIds: TMessagesIdsRef }) => {
 	const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
@@ -33,6 +34,7 @@ export const useScroll = ({ listRef, messagesIds }: { listRef: TListRef; message
 	]);
 
 	const handleScrollToIndexFailed: IListProps['onScrollToIndexFailed'] = params => {
+		debugSearchJump('useScroll.onScrollToIndexFailed', params);
 		listRef.current?.scrollToIndex({ index: params.highestMeasuredFrameIndex, animated: false });
 	};
 
@@ -56,6 +58,11 @@ export const useScroll = ({ listRef, messagesIds }: { listRef: TListRef; message
 
 			// look for the message on the state
 			const index = messagesIds.current?.findIndex(item => item === messageId) ?? -1;
+			debugSearchJump('useScroll.jumpToMessage.index', {
+				messageId,
+				index,
+				count: messagesIds.current?.length ?? 0
+			});
 
 			// if found message, scroll to it
 			if (index !== -1) {
@@ -66,16 +73,23 @@ export const useScroll = ({ listRef, messagesIds }: { listRef: TListRef; message
 
 				// if message is not visible
 				if (!viewableItems.current?.map(vi => vi.key).includes(messageId)) {
+					debugSearchJump('useScroll.jumpToMessage.notVisibleRetry', {
+						messageId,
+						index,
+						viewableKeys: viewableItems.current?.map(vi => vi.key)
+					});
 					await setTimeout(() => resolve(jumpToMessage(messageId)), 300);
 					return;
 				}
 				// if message is visible, highlight it
+				debugSearchJump('useScroll.jumpToMessage.visible', { messageId, index });
 				setHighlightedMessageId(messageId);
 				setHighlightTimeout();
 				resetJumpToMessage();
 				resolve();
 			} else {
 				// if message not on state yet, scroll to top, so it triggers onEndReached and try again
+				debugSearchJump('useScroll.jumpToMessage.notLoadedRetry', { messageId });
 				listRef.current?.scrollToEnd();
 				await setTimeout(() => resolve(jumpToMessage(messageId)), 600);
 			}

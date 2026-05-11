@@ -9,15 +9,27 @@ import sdk from '../services/sdk';
 import { type IMessage } from '../../definitions';
 import updateMessages from './updateMessages';
 import { generateLoadMoreId } from './helpers/generateLoadMoreId';
+import { debugSearchJump } from './helpers/debugSearchJump';
 
 const COUNT = 50;
 
 export function loadSurroundingMessages({ messageId, rid }: { messageId: string; rid: string }) {
 	return new Promise(async (resolve, reject) => {
 		try {
-			const data = await sdk.methodCallWrapper('loadSurroundingMessages', { _id: messageId, rid }, COUNT);
+			debugSearchJump('loadSurroundingMessages.request', { messageId, rid, count: COUNT });
+			const data = await sdk.methodCallWrapper('loadSurroundingMessages', { _id: messageId, rid }, COUNT, false);
 			let messages: IMessage[] = EJSON.fromJSONValue(data?.messages);
 			messages = orderBy(messages, 'ts');
+			debugSearchJump('loadSurroundingMessages.response', {
+				messageId,
+				rid,
+				count: messages?.length ?? 0,
+				hasTarget: messages?.some(message => message._id === messageId),
+				moreBefore: data?.moreBefore,
+				moreAfter: data?.moreAfter,
+				first: messages?.[0]?._id,
+				last: messages?.[messages.length - 1]?._id
+			});
 
 			if (messages?.length) {
 				if (data?.moreBefore) {
@@ -51,6 +63,7 @@ export function loadSurroundingMessages({ messageId, rid }: { messageId: string;
 				}
 
 				await updateMessages({ rid, update: messages });
+				debugSearchJump('loadSurroundingMessages.updateMessages.done', { messageId, rid, count: messages.length });
 				return resolve(messages);
 			}
 			return resolve([]);

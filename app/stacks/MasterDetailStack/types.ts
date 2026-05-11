@@ -19,6 +19,7 @@ export type MasterDetailChatsStackParamList = {
 		room: ISubscription;
 		jumpToMessageId?: string;
 		jumpToThreadId?: string;
+		jumpTs?: number;
 		roomUserId?: string;
 	};
 };

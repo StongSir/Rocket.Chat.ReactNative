@@ -1,6 +1,7 @@
 import React, { forwardRef, useImperativeHandle } from 'react';
 
 import { useDebounce } from '../../../lib/methods/helpers';
+import { debugSearchJump } from '../../../lib/methods/helpers/debugSearchJump';
 import EmptyRoom from './components/EmptyRoom';
 import List from './components/List';
 import { type IListContainerProps, type IListContainerRef, type IListProps } from './definitions';
@@ -30,8 +31,15 @@ const ListContainer = forwardRef<IListContainerRef, IListContainerProps>(
 
 		useImperativeHandle(ref, () => ({
 			jumpToMessage: async (messageId: string) => {
+				debugSearchJump('ListContainer.jumpToMessage.start', { messageId });
 				await loadMessage(messageId);
+				debugSearchJump('ListContainer.loadMessage.done', {
+					messageId,
+					loaded: messagesIds.current.includes(messageId),
+					count: messagesIds.current.length
+				});
 				await scrollJumpToMessage(messageId);
+				debugSearchJump('ListContainer.scrollJumpToMessage.done', { messageId });
 			},
 			cancelJumpToMessage
 		}));

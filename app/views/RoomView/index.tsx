@@ -79,6 +79,7 @@ import { type ModalStackParamList } from '../../stacks/MasterDetailStack/types';
 import { callJitsi } from '../../lib/methods/callJitsi';
 import { loadSurroundingMessages } from '../../lib/methods/loadSurroundingMessages';
 import { loadThreadMessages } from '../../lib/methods/loadThreadMessages';
+import { debugSearchJump } from '../../lib/methods/helpers/debugSearchJump';
 import { readMessages } from '../../lib/methods/readMessages';
 import { sendMessage } from '../../lib/methods/sendMessage';
 import { triggerBlockAction } from '../../lib/methods/triggerActions';
@@ -1024,10 +1025,57 @@ class RoomView extends React.Component<IRoomViewProps, IRoomViewState> {
 		}
 	};
 
+	waitForLocalMessage = (messageId: string) =>
+		new Promise<void>(resolve => {
+			const startedAt = Date.now();
+			const interval = setInterval(async () => {
+				const message = await getMessageById(messageId);
+				if (message || Date.now() - startedAt >= 2000) {
+					clearInterval(interval);
+					debugSearchJump('RoomView.waitForLocalMessage.done', {
+						messageId,
+						found: !!message,
+						duration: Date.now() - startedAt
+					});
+					resolve();
+				}
+			}, 100);
+		});
+
+	waitForMessageList = () =>
+		new Promise<void>(resolve => {
+			if (this.list.current) {
+				resolve();
+				return;
+			}
+			const startedAt = Date.now();
+			const interval = setInterval(() => {
+				if (this.list.current || Date.now() - startedAt >= 2000) {
+					clearInterval(interval);
+					debugSearchJump('RoomView.waitForMessageList.done', {
+						hasList: !!this.list.current,
+						duration: Date.now() - startedAt
+					});
+					resolve();
+				}
+			}, 100);
+		});
+
 	jumpToMessage = async (messageId: string, isFromReply?: boolean) => {
 		try {
+			debugSearchJump('RoomView.jumpToMessage.start', {
+				messageId,
+				rid: this.rid,
+				t: this.t,
+				isFromReply
+			});
 			sendLoadingEvent({ visible: true, onCancel: this.cancelJumpToMessage });
 			const message = await RoomServices.getMessageInfo(messageId);
+			debugSearchJump('RoomView.getMessageInfo.done', {
+				messageId,
+				found: !!message,
+				message
+			});
 
 			if (!message) {
 				this.cancelJumpToMessage();
@@ -1036,8 +1084,10 @@ class RoomView extends React.Component<IRoomViewProps, IRoomViewState> {
 
 			if (this.shouldNavigateToRoom(message)) {
 				if (message.rid !== this.rid) {
+					debugSearchJump('RoomView.jumpToMessage.navigateOtherRoom', { messageId, messageRid: message.rid, currentRid: this.rid });
 					this.navToRoom(message);
 				} else {
+					debugSearchJump('RoomView.jumpToMessage.navigateThread', { messageId, tmid: message.tmid });
 					this.navToThread(message);
 				}
 			} else if (!message.tmid && message.rid === this.rid && this.t === 'thread' && !message.replies) {
@@ -1051,14 +1101,24 @@ class RoomView extends React.Component<IRoomViewProps, IRoomViewState> {
 				 * we test if it's not from threads because we're fetching from threads currently with `loadThreadMessages`
 				 */
 				if (message.fromServer && !message.tmid && this.rid) {
+					debugSearchJump('RoomView.loadSurroundingMessages.start', { messageId, rid: this.rid });
 					await loadSurroundingMessages({ messageId, rid: this.rid });
+					debugSearchJump('RoomView.loadSurroundingMessages.done', { messageId, rid: this.rid });
+					await this.waitForLocalMessage(messageId);
 				}
 				// Synchronization needed for Fabric to work
 				await new Promise(res => setTimeout(res, 100));
-				await Promise.race([this.list.current?.jumpToMessage(message.id), new Promise(res => setTimeout(res, 5000))]);
+				await this.waitForMessageList();
+				debugSearchJump('RoomView.listJump.start', { messageId: message.id });
+				const result = await Promise.race([
+					this.list.current?.jumpToMessage(message.id).then(() => 'done'),
+					new Promise(res => setTimeout(() => res('timeout'), 15000))
+				]);
+				debugSearchJump('RoomView.listJump.done', { messageId: message.id, result });
 				this.cancelJumpToMessage();
 			}
 		} catch (error: any) {
+			debugSearchJump('RoomView.jumpToMessage.error', { messageId, error });
 			if (isFromReply && error.data?.errorType === 'error-not-allowed') {
 				showErrorAlert(I18n.t('The_room_does_not_exist'), I18n.t('Room_not_found'));
 			} else {

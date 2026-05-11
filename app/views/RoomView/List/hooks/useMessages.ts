@@ -7,8 +7,12 @@ import database from '../../../../lib/database';
 import { getMessageById } from '../../../../lib/database/services/Message';
 import { getThreadById } from '../../../../lib/database/services/Thread';
 import { compareServerVersion, useDebounce } from '../../../../lib/methods/helpers';
+import { debugSearchJump } from '../../../../lib/methods/helpers/debugSearchJump';
 import { readThreads } from '../../../../lib/services/restApi';
+import { getJumpToMessageFetchCount, shouldUseJumpWindow } from '../utils';
 import { QUERY_SIZE } from '../constants';
+
+const JUMP_WINDOW_SIDE_SIZE = 25;
 
 export const useMessages = ({
 	rid,
@@ -28,6 +32,7 @@ export const useMessages = ({
 	const count = useRef(0);
 	const subscription = useRef<Subscription | null>(null);
 	const messagesIds = useRef<string[]>([]);
+	const renderResolvers = useRef<(() => void)[]>([]);
 
 	const fetchMessages = useCallback(async (forceCount?: number) => {
 		unsubscribe();
@@ -97,6 +102,12 @@ export const useMessages = ({
 	}, 1000);
 
 	useLayoutEffect(() => {
+		const resolvers = renderResolvers.current;
+		renderResolvers.current = [];
+		resolvers.forEach(resolve => resolve());
+	}, [messages]);
+
+	useLayoutEffect(() => {
 		fetchMessages();
 
 		return () => {
@@ -107,6 +118,104 @@ export const useMessages = ({
 	const unsubscribe = () => {
 		subscription.current?.unsubscribe();
 	};
+
+	const updateMessagesState = useCallback((newMessages: TAnyMessageModel[]) => {
+		setMessages(newMessages);
+		messagesIds.current = newMessages.map(m => m.id);
+	}, []);
+
+	const waitForMessagesRender = useCallback(
+		() =>
+			new Promise<void>(resolve => {
+				const timeout = setTimeout(resolve, 1000);
+				renderResolvers.current.push(() => {
+					clearTimeout(timeout);
+					resolve();
+				});
+			}),
+		[]
+	);
+
+	const getMainRoomWhereClause = useCallback(
+		(operator: Q.Comparison) => {
+			const whereClause = [Q.where('rid', rid), Q.where('ts', operator)] as (Q.WhereDescription | Q.Or)[];
+			if (!showMessageInMainThread) {
+				whereClause.push(Q.or(Q.where('tmid', null), Q.where('tshow', Q.eq(true))));
+			}
+			return whereClause;
+		},
+		[rid, showMessageInMainThread]
+	);
+
+	const loadMessageWindow = useCallback(
+		async (message: TAnyMessageModel, messageDate: number) => {
+			unsubscribe();
+			const db = database.active;
+			let newerMessages: TAnyMessageModel[];
+			let olderMessages: TAnyMessageModel[];
+
+			if (tmid) {
+				newerMessages = (await db
+					.get('thread_messages')
+					.query(Q.where('rid', tmid), Q.where('ts', Q.gt(messageDate)), Q.sortBy('ts', Q.asc), Q.take(JUMP_WINDOW_SIDE_SIZE))
+					.fetch()) as TAnyMessageModel[];
+				olderMessages = (await db
+					.get('thread_messages')
+					.query(Q.where('rid', tmid), Q.where('ts', Q.lte(messageDate)), Q.sortBy('ts', Q.desc), Q.take(JUMP_WINDOW_SIDE_SIZE))
+					.fetch()) as TAnyMessageModel[];
+			} else {
+				newerMessages = (await db
+					.get('messages')
+					.query(...getMainRoomWhereClause(Q.gt(messageDate)), Q.sortBy('ts', Q.asc), Q.take(JUMP_WINDOW_SIDE_SIZE))
+					.fetch()) as TAnyMessageModel[];
+				olderMessages = (await db
+					.get('messages')
+					.query(...getMainRoomWhereClause(Q.lte(messageDate)), Q.sortBy('ts', Q.desc), Q.take(JUMP_WINDOW_SIDE_SIZE))
+					.fetch()) as TAnyMessageModel[];
+			}
+
+			const messageMap = new Map<string, TAnyMessageModel>();
+			[...newerMessages, message, ...olderMessages].forEach(item => {
+				messageMap.set(item.id, item);
+			});
+			const newMessages = Array.from(messageMap.values()).sort((a, b) => {
+				const aTime = a.ts instanceof Date ? a.ts.getTime() : new Date(a.ts).getTime();
+				const bTime = b.ts instanceof Date ? b.ts.getTime() : new Date(b.ts).getTime();
+				return bTime - aTime;
+			});
+			count.current = newMessages.length;
+			debugSearchJump('useMessages.loadMessageWindow', {
+				messageId: message.id,
+				count: newMessages.length,
+				hasTarget: newMessages.some(item => item.id === message.id),
+				newerCount: newerMessages.length,
+				olderCount: olderMessages.length
+			});
+			updateMessagesState(newMessages);
+		},
+		[tmid, getMainRoomWhereClause, updateMessagesState]
+	);
+
+	const waitUntilMessageIsLoaded = useCallback(
+		(messageId: string) =>
+			new Promise<void>(resolve => {
+				if (messagesIds.current.includes(messageId)) {
+					resolve();
+					return;
+				}
+				const interval = setInterval(() => {
+					if (messagesIds.current.includes(messageId)) {
+						clearInterval(interval);
+						resolve();
+					}
+				}, 100);
+				setTimeout(() => {
+					clearInterval(interval);
+					resolve();
+				}, 5000);
+			}),
+		[]
+	);
 
 	const loadMessage = useCallback(async (messageId: string) => {
 		const db = database.active;
@@ -120,6 +229,7 @@ export const useMessages = ({
 		}
 
 		if (!message) {
+			debugSearchJump('useMessages.loadMessage.noLocalMessage', { messageId, tmid });
 			return;
 		}
 
@@ -128,32 +238,32 @@ export const useMessages = ({
 		if (tmid) {
 			countNewer = await db.get('thread_messages').query(Q.where('rid', tmid), Q.where('ts', Q.gt(messageDate))).fetchCount();
 		} else {
-			const whereClause = [Q.where('rid', rid), Q.where('ts', Q.gt(messageDate))] as (
-				| Q.WhereDescription
-				| Q.Or
-			)[];
-			if (!showMessageInMainThread) {
-				whereClause.push(Q.or(Q.where('tmid', null), Q.where('tshow', Q.eq(true))));
-			}
-			countNewer = await db.get('messages').query(...whereClause).fetchCount();
+			countNewer = await db.get('messages').query(...getMainRoomWhereClause(Q.gt(messageDate))).fetchCount();
 		}
 
-		if (countNewer >= count.current) {
-			fetchMessages(countNewer + 50);
-			await new Promise<void>(resolve => {
-				const interval = setInterval(() => {
-					if (messagesIds.current.includes(messageId)) {
-						clearInterval(interval);
-						resolve();
-					}
-				}, 100);
-				setTimeout(() => {
-					clearInterval(interval);
-					resolve();
-				}, 3000); // 3 seconds timeout
-			});
+		const forceCount = getJumpToMessageFetchCount({ countNewer, currentCount: count.current });
+		debugSearchJump('useMessages.loadMessage.localFound', {
+			messageId,
+			tmid,
+			countNewer,
+			currentCount: count.current,
+			forceCount,
+			loaded: messagesIds.current.includes(messageId),
+			useJumpWindow: shouldUseJumpWindow({ forceCount })
+		});
+		if (shouldUseJumpWindow({ forceCount })) {
+			await loadMessageWindow(message, messageDate);
+		} else if (forceCount > count.current || !messagesIds.current.includes(messageId)) {
+			await fetchMessages(forceCount);
 		}
-	}, [rid, tmid, showMessageInMainThread, fetchMessages]);
+		await waitUntilMessageIsLoaded(messageId);
+		await waitForMessagesRender();
+		debugSearchJump('useMessages.loadMessage.done', {
+			messageId,
+			loaded: messagesIds.current.includes(messageId),
+			count: messagesIds.current.length
+		});
+	}, [tmid, fetchMessages, waitUntilMessageIsLoaded, waitForMessagesRender, getMainRoomWhereClause, loadMessageWindow]);
 
 	return [messages, messagesIds, fetchMessages, loadMessage] as const;
 };

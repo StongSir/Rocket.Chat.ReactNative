@@ -41,6 +41,8 @@ import {
 import { searchMessages } from '../../lib/services/restApi';
 import { type TNavigation } from '../../stacks/stackType';
 import Navigation from '../../lib/navigation/appNavigation';
+import { debugSearchJump } from '../../lib/methods/helpers/debugSearchJump';
+import { appendUniqueMessages, getMessageId, normalizeSearchText } from './utils';
 
 const QUERY_SIZE = 50;
 
@@ -89,6 +91,8 @@ class SearchMessagesView extends React.Component<ISearchMessagesViewProps, ISear
 
 	private room?: IRoomInfoResult;
 
+	private searchRequestId: number;
+
 	static navigationOptions = ({ navigation, route }: INavigationOption) => {
 		const options: NativeStackNavigationOptions = {
 			title: I18n.t('Search')
@@ -111,6 +115,7 @@ class SearchMessagesView extends React.Component<ISearchMessagesViewProps, ISear
 		this.rid = props.route.params.rid;
 		this.t = props.route.params?.t;
 		this.encrypted = props.route.params?.encrypted;
+		this.searchRequestId = 0;
 	}
 
 	async componentDidMount() {
@@ -140,26 +145,31 @@ class SearchMessagesView extends React.Component<ISearchMessagesViewProps, ISear
 	}
 
 	// Handle encrypted rooms search messages
-	searchMessages = async (searchText: string): Promise<(IMessageFromServer | TMessageModel)[]> => {
-		if (!searchText) {
+	searchMessages = async (searchText: string, offset = this.offset): Promise<(IMessageFromServer | TMessageModel)[]> => {
+		const normalizedSearchText = normalizeSearchText(searchText);
+		if (!normalizedSearchText) {
 			return [];
 		}
 		// If it's a encrypted, room we'll search only on the local stored messages
 		if (this.encrypted) {
 			const db = database.active;
 			const messagesCollection = db.get('messages');
-			const likeString = sanitizeLikeString(searchText);
-			return messagesCollection
+			const likeString = sanitizeLikeString(normalizedSearchText);
+			const messages = await messagesCollection
 				.query(
 					// Messages of this room
 					Q.where('rid', this.rid),
 					// Message content is like the search text
-					Q.where('msg', Q.like(`%${likeString}%`))
+					Q.where('msg', Q.like(`%${likeString}%`)),
+					Q.sortBy('ts', Q.desc),
+					Q.skip(offset),
+					Q.take(QUERY_SIZE)
 				)
 				.fetch();
+			return messages;
 		}
 		// If it's not a encrypted room, search messages on the server
-		const result = await searchMessages(this.rid, searchText, QUERY_SIZE, this.offset);
+		const result = await searchMessages(this.rid, normalizedSearchText, QUERY_SIZE, offset);
 		if (result.success) {
 			const urlRenderMessages = result.messages?.map(message => {
 				if (message.urls && message.urls.length > 0) {
@@ -177,33 +187,57 @@ class SearchMessagesView extends React.Component<ISearchMessagesViewProps, ISear
 					});
 				}
 				return message;
-			});
-			this.offset += QUERY_SIZE;
+			}) ?? [];
 			return urlRenderMessages;
 		}
 		return [];
 	};
-	getMessages = async (searchText: string, debounced?: boolean) => {
+
+	isCurrentSearch = (requestId: number, searchText: string) =>
+		requestId === this.searchRequestId && normalizeSearchText(this.state.searchText) === normalizeSearchText(searchText);
+
+	getMessages = async (searchText: string, debounced?: boolean, requestId = this.searchRequestId) => {
+		const normalizedSearchText = normalizeSearchText(searchText);
+		if (!normalizedSearchText) {
+			if (requestId === this.searchRequestId) {
+				this.setState({ loading: false, messages: [] });
+			}
+			return;
+		}
 		try {
-			const messages = await this.searchMessages(searchText);
+			const offset = this.offset;
+			const messages = await this.searchMessages(normalizedSearchText, offset);
+			if (!this.isCurrentSearch(requestId, normalizedSearchText)) {
+				return;
+			}
+			this.offset = offset + QUERY_SIZE;
 			this.setState(prevState => ({
-				messages: debounced ? messages : [...prevState.messages, ...messages],
+				messages: debounced ? messages : appendUniqueMessages(prevState.messages, messages),
 				loading: false
 			}));
 		} catch (e) {
-			this.setState({ loading: false });
+			if (this.isCurrentSearch(requestId, normalizedSearchText)) {
+				this.setState({ loading: false });
+			}
 			log(e);
 		}
 	};
 
 	search = (searchText: string) => {
+		const normalizedSearchText = normalizeSearchText(searchText);
+		this.searchRequestId += 1;
 		this.offset = 0;
-		this.setState({ searchText, loading: true, messages: [] });
-		this.searchDebounced(searchText);
+		this.searchDebounced?.stop?.();
+		if (!normalizedSearchText) {
+			this.setState({ searchText: normalizedSearchText, loading: false, messages: [] });
+			return;
+		}
+		this.setState({ searchText: normalizedSearchText, loading: true, messages: [] });
+		this.searchDebounced(normalizedSearchText, this.searchRequestId);
 	};
 
-	searchDebounced = debounce(async (searchText: string) => {
-		await this.getMessages(searchText, true);
+	searchDebounced = debounce(async (searchText: string, requestId: number) => {
+		await this.getMessages(searchText, true, requestId);
 	}, textInputDebounceTime);
 
 	getCustomEmoji: TGetCustomEmoji = name => {
@@ -229,32 +263,40 @@ class SearchMessagesView extends React.Component<ISearchMessagesViewProps, ISear
 	};
 
 	jumpToMessage = async ({ item }: { item: IMessageFromServer | TMessageModel }) => {
-		const { isMasterDetail } = this.props;
+		const { isMasterDetail, navigation } = this.props;
 		let params: {
 			rid: string;
 			jumpToMessageId: string;
+			jumpTs: number;
 			t: SubscriptionType;
 			room: TSubscriptionModel | undefined;
 			tmid?: string;
 			name?: string;
 		} = {
 			rid: this.rid,
-			jumpToMessageId: item._id,
+			jumpToMessageId: getMessageId(item),
+			jumpTs: Date.now(),
 			t: this.t,
 			room: this.room as TSubscriptionModel
 		};
+		debugSearchJump('SearchMessagesView.jumpToMessage', {
+			messageId: params.jumpToMessageId,
+			rid: params.rid,
+			t: params.t,
+			isThread: 'tmid' in item && !!item.tmid,
+			jumpTs: params.jumpTs
+		});
 		if ('tmid' in item && item.tmid) {
 			Navigation.popToRoom(isMasterDetail);
 			params = {
 				...params,
 				tmid: item.tmid,
-				name: await getThreadName(this.rid, item.tmid as string, item._id),
+				name: await getThreadName(this.rid, item.tmid as string, getMessageId(item)),
 				t: SubscriptionType.THREAD
 			};
 			Navigation.push('RoomView', params);
 		} else {
-			Navigation.popToRoom(isMasterDetail);
-			Navigation.setParams(params);
+			navigation.navigate('RoomView', params);
 		}
 	};
 
@@ -263,14 +305,13 @@ class SearchMessagesView extends React.Component<ISearchMessagesViewProps, ISear
 		const { searchText, messages, loading } = this.state;
 		if (
 			messages.length < this.offset ||
-			this.encrypted ||
 			loading ||
-			compareServerVersion(serverVersion, 'lowerThan', '3.17.0')
+			(!this.encrypted && compareServerVersion(serverVersion, 'lowerThan', '3.17.0'))
 		) {
 			return;
 		}
 		this.setState({ loading: true });
-		await this.getMessages(searchText);
+		await this.getMessages(searchText, false, this.searchRequestId);
 	};
 
 	renderEmpty = () => {
@@ -317,7 +358,7 @@ class SearchMessagesView extends React.Component<ISearchMessagesViewProps, ISear
 				data={messages}
 				renderItem={this.renderItem}
 				style={[styles.list, { backgroundColor: themes[theme].surfaceRoom }]}
-				keyExtractor={item => item._id}
+				keyExtractor={getMessageId}
 				onEndReached={this.onEndReached}
 				ListFooterComponent={loading ? <ActivityIndicator /> : null}
 				onEndReachedThreshold={0.5}
