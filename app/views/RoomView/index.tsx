@@ -841,6 +841,14 @@ class RoomView extends React.Component<IRoomViewProps, IRoomViewState> {
 		this.setState({ selectedMessages: [messageId], action: 'quote' });
 	};
 
+	onMentionInit = (username: string) => {
+		if (!username) {
+			return;
+		}
+		this.resetAction();
+		this.messageComposerRef.current?.insertMention(username);
+	};
+
 	onRemoveQuoteMessage = (messageId: string) => {
 		const { selectedMessages } = this.state;
 		const newSelectedMessages = selectedMessages.filter(item => item !== messageId);
@@ -1589,6 +1597,7 @@ class RoomView extends React.Component<IRoomViewProps, IRoomViewState> {
 					editInit={this.onEditInit}
 					replyInit={this.onReplyInit}
 					quoteInit={this.onQuoteInit}
+					mentionInit={this.onMentionInit}
 					reactionInit={this.onReactionInit}
 					onReactionPress={this.onReactionPress}
 					jumpToMessage={this.jumpToMessageByUrl}

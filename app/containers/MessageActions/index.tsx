@@ -45,6 +45,7 @@ export interface IMessageActionsProps {
 	onReactionPress: (shortname: IEmoji, messageId: string) => void;
 	replyInit: (messageId: string) => void;
 	quoteInit: (messageId: string) => void;
+	mentionInit: (username: string) => void;
 	jumpToMessage?: (messageUrl?: string, isFromReply?: boolean) => Promise<void>;
 	isMasterDetail: boolean;
 	isReadOnly: boolean;
@@ -81,6 +82,7 @@ const MessageActions = React.memo(
 				onReactionPress,
 				replyInit,
 				quoteInit,
+				mentionInit,
 				jumpToMessage,
 				isReadOnly,
 				Message_AllowDeleting,
@@ -292,6 +294,10 @@ const MessageActions = React.memo(
 				quoteInit(messageId);
 			};
 
+			const handleMention = (username: string) => {
+				mentionInit(username);
+			};
+
 			const handleReplyInDM = async (message: TAnyMessageModel) => {
 				if (message?.u?.username) {
 					const result = await createDirectMessage(message.u.username);
@@ -399,6 +405,16 @@ const MessageActions = React.memo(
 			const getOptions = (message: TAnyMessageModel) => {
 				const options: TActionSheetOptionsItem[] = [];
 				const videoConfBlock = message.t === 'videoconf';
+				const username = message.u?.username;
+
+				if (!isReadOnly && username) {
+					options.push({
+						title: '@他/她',
+						icon: 'mention',
+						onPress: () => handleMention(username),
+						testID: 'message-actions-mention-user'
+					});
+				}
 
 				// Edit
 				const isEditAllowed = allowEdit(message);

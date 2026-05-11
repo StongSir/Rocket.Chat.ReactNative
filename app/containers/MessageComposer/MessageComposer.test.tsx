@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor, userEvent } from '@testing-library/react-native';
+import { render, screen, fireEvent, waitFor, userEvent, act } from '@testing-library/react-native';
 import { Provider } from 'react-redux';
 
 import { MessageComposerContainer } from './MessageComposerContainer';
@@ -12,6 +12,7 @@ import { type IPermissionsState } from '../../reducers/permissions';
 import { type IMessage } from '../../definitions';
 import { colors } from '../../lib/constants/colors';
 import { type IRoomContext, RoomContext } from '../../views/RoomView/context';
+import { type IMessageComposerRef } from './interfaces';
 import * as EmojiKeyboardHook from './hooks/useEmojiKeyboard';
 import { initStore } from '../../lib/store/auxStore';
 import { search } from '../../lib/methods/search';
@@ -95,10 +96,10 @@ const initialContext = {
 	onRemoveQuoteMessage: jest.fn()
 };
 
-const Render = ({ context }: { context?: Partial<IRoomContext> }) => (
+const Render = ({ context, composerRef }: { context?: Partial<IRoomContext>; composerRef?: React.RefObject<IMessageComposerRef | null> }) => (
 	<Provider store={mockedStore}>
 		<RoomContext.Provider value={{ ...initialContext, ...context }}>
-			<MessageComposerContainer />
+			<MessageComposerContainer ref={composerRef} />
 		</RoomContext.Provider>
 	</Provider>
 );
@@ -400,6 +401,21 @@ describe('MessageComposer', () => {
 			expect(onSendMessage).toHaveBeenCalledTimes(1);
 			expect(onSendMessage).toHaveBeenCalledWith('@', undefined);
 			expect(screen.toJSON()).toMatchSnapshot();
+		});
+
+		test('insert mention by username from message actions', async () => {
+			const onSendMessage = jest.fn();
+			const composerRef = React.createRef<IMessageComposerRef>();
+			render(<Render context={{ onSendMessage }} composerRef={composerRef} />);
+
+			act(() => {
+				composerRef.current?.insertMention('john');
+			});
+			await waitFor(() => expect(screen.getByTestId('message-composer-send')).toBeOnTheScreen());
+			await user.press(screen.getByTestId('message-composer-send'));
+
+			expect(onSendMessage).toHaveBeenCalledTimes(1);
+			expect(onSendMessage).toHaveBeenCalledWith('@john', undefined);
 		});
 	});
 

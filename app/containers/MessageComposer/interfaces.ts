@@ -6,6 +6,7 @@ export interface IMessageComposerRef {
 	closeEmojiKeyboardAndAction: (action?: Function, params?: any) => void;
 	getText: () => string;
 	setInput: TSetInput;
+	insertMention: (username: string) => void;
 }
 
 export interface IMessageComposerContainerProps {

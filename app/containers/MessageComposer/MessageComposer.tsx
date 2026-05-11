@@ -52,10 +52,30 @@ export const MessageComposer = ({
 	const { formatShortnameToUnicode } = useShortnameToUnicode();
 	const { colors } = useTheme();
 
+	const insertMention = (username: string) => {
+		if (!username) {
+			return;
+		}
+		const text = composerInputComponentRef.current.getText();
+		const { start, end } = composerInputComponentRef.current.getSelection();
+		const mention = `@${username}`;
+		const prefix = text.slice(0, start);
+		const suffix = text.slice(end);
+		const separatorBefore = prefix && !/\s$/.test(prefix) ? ' ' : '';
+		const separatorAfter = suffix && !/^\s/.test(suffix) ? ' ' : '';
+		const insertedText = `${separatorBefore}${mention}${separatorAfter}`;
+		const newText = `${prefix}${insertedText}${suffix}`;
+		const newCursor = prefix.length + insertedText.length;
+		composerInputComponentRef.current.setInput(newText, { start: newCursor, end: newCursor });
+		setAutocompleteParams({ text: '', type: null, params: '' });
+		composerInputComponentRef.current.focus();
+	};
+
 	useImperativeHandle(forwardedRef, () => ({
 		closeEmojiKeyboardAndAction,
 		getText: composerInputComponentRef.current?.getText,
-		setInput: composerInputComponentRef.current?.setInput
+		setInput: composerInputComponentRef.current?.setInput,
+		insertMention
 	}));
 
 	useBackHandler(() => {
