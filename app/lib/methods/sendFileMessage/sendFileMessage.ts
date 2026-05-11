@@ -7,7 +7,7 @@ import i18n from '../../../i18n';
 import database from '../../database';
 import FileUpload from '../helpers/fileUpload';
 import log from '../helpers/log';
-import { copyFileToCacheDirectoryIfNeeded, getUploadPath, persistUploadError, uploadQueue } from './utils';
+import { copyFileToCacheDirectoryIfNeeded, getUploadPath, normalizeUploadFileName, persistUploadError, uploadQueue } from './utils';
 import { type IFormData } from '../helpers/fileUpload/definitions';
 
 export async function sendFileMessage(
@@ -24,13 +24,7 @@ export async function sendFileMessage(
 		const uploadUrl = `${server}/api/v1/rooms.upload/${rid}`;
 		fileInfo.rid = rid;
 
-		if (fileInfo.name) {
-			try {
-				fileInfo.name = decodeURIComponent(fileInfo.name);
-			} catch {
-				// Do nothing
-			}
-		}
+		fileInfo.name = normalizeUploadFileName(fileInfo.name);
 
 		const db = database.active;
 		const uploadsCollection = db.get('uploads');

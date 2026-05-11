@@ -49,18 +49,35 @@ const styles = StyleSheet.create({
 		padding: 8
 	},
 	// Style for file attachments - simple row with icon
-	fileButton: {
-		paddingVertical: 8,
-		paddingHorizontal: 12,
-		borderRadius: 8,
-		gap: 8
+	fileWrapper: {
+		gap: 4,
+		marginBottom: 8,
+		width: '100%'
 	},
-	fileIcon: {
-		marginRight: 4
+	fileButton: {
+		height: 56,
+		borderWidth: 1,
+		borderRadius: 4,
+		paddingHorizontal: 16,
+		gap: 12,
+		width: '100%'
+	},
+	fileContent: {
+		flex: 1,
+		flexDirection: 'row',
+		alignItems: 'center',
+		gap: 12
+	},
+	fileIconContainer: {
+		alignItems: 'center',
+		height: 32,
+		width: 32,
+		borderRadius: 4,
+		justifyContent: 'center'
 	},
 	fileName: {
 		flex: 1,
-		fontSize: 14,
+		fontSize: 16,
 		...sharedStyles.textMedium
 	},
 	attachmentContainer: {
@@ -253,7 +270,7 @@ const Reply = React.memo(
 		'use memo';
 
 		const [loading, setLoading] = useState(false);
-		const { theme } = useTheme();
+		const { colors, theme } = useTheme();
 		const { baseUrl, user, id, e2e, isEncrypted } = useContext(MessageContext);
 
 		if (!attachment || (isEncrypted && !e2e)) {
@@ -285,7 +302,7 @@ const Reply = React.memo(
 		// File attachment: simple icon + filename display
 		if (isFileAttachment) {
 			return (
-				<View style={{ gap: 4, marginBottom: 8 }}>
+				<View style={styles.fileWrapper}>
 					<Touchable
 						testID={`file-${attachment?.title}`}
 						onPress={onPress}
@@ -293,14 +310,17 @@ const Reply = React.memo(
 							styles.button,
 							styles.fileButton,
 							{
-								backgroundColor: themes[theme].surfaceNeutral,
+								backgroundColor: themes[theme].surfaceLight,
+								borderColor: themes[theme].strokeExtraLight,
 								alignSelf: isOwnMessage ? 'flex-end' : 'flex-start'
 							}
 						]}>
-						<View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-							<CustomIcon name='file-document' size={20} color={themes[theme].fontSecondaryInfo} />
+						<View style={styles.fileContent}>
+							<View style={[styles.fileIconContainer, { backgroundColor: colors.buttonBackgroundPrimaryDefault }]}>
+								<CustomIcon name='file-document' size={24} color={colors.buttonFontPrimary} />
+							</View>
 							<Text
-								style={[styles.fileName, { color: themes[theme].fontDefault }]}
+								style={[styles.fileName, { color: colors.buttonBackgroundPrimaryDefault }]}
 								numberOfLines={1}
 								ellipsizeMode='middle'>
 								{decodeFilename(attachment.title)}

@@ -14,6 +14,28 @@ export const uploadQueue: { [index: string]: IFileUpload } = {};
 
 export const getUploadPath = (path: string, rid: string) => `${path}-${rid}`;
 
+export const normalizeUploadFileName = (name?: string): string | undefined => {
+	if (!name) {
+		return name;
+	}
+	let normalized = name;
+	for (let i = 0; i < 3; i += 1) {
+		if (!/%[0-9a-fA-F]{2}/.test(normalized)) {
+			break;
+		}
+		try {
+			const decoded = decodeURIComponent(normalized);
+			if (decoded === normalized) {
+				break;
+			}
+			normalized = decoded;
+		} catch {
+			return name;
+		}
+	}
+	return normalized.normalize?.('NFC') ?? normalized;
+};
+
 export function isUploadActive(path: string, rid: string): boolean {
 	return !!uploadQueue[getUploadPath(path, rid)];
 }
@@ -100,11 +122,18 @@ export const createUploadRecord = async ({
 };
 
 export const copyFileToCacheDirectoryIfNeeded = async (path: string, name?: string) => {
-	if (!path.startsWith('file://') && name) {
+	const normalizedName = normalizeUploadFileName(name);
+	if (normalizedName) {
 		if (!FileSystem.cacheDirectory) {
 			throw new Error('No cache dir');
 		}
-		const newPath = `${FileSystem.cacheDirectory}/${name}`;
+		const currentName = path.split('/').pop();
+		if (path.startsWith('file://') && currentName === normalizedName) {
+			return path;
+		}
+		const cacheDirectory = FileSystem.cacheDirectory.endsWith('/') ? FileSystem.cacheDirectory : `${FileSystem.cacheDirectory}/`;
+		const newPath = `${cacheDirectory}${normalizedName}`;
+		await FileSystem.deleteAsync(newPath, { idempotent: true });
 		await FileSystem.copyAsync({ from: path, to: newPath });
 		return newPath;
 	}

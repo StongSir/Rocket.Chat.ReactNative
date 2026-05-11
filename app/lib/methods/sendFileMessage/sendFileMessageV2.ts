@@ -3,7 +3,7 @@ import { settings as RocketChatSettings } from '@rocket.chat/sdk';
 import { type TSendFileMessageFileInfo, type IUser, type TUploadModel } from '../../../definitions';
 import database from '../../database';
 import { Encryption } from '../../encryption';
-import { copyFileToCacheDirectoryIfNeeded, createUploadRecord, persistUploadError, uploadQueue } from './utils';
+import { copyFileToCacheDirectoryIfNeeded, createUploadRecord, normalizeUploadFileName, persistUploadError, uploadQueue } from './utils';
 import FileUpload from '../helpers/fileUpload';
 import { type IFormData } from '../helpers/fileUpload/definitions';
 import fetch from '../helpers/fetch';
@@ -28,6 +28,7 @@ export async function sendFileMessageV2(
 		};
 		const db = database.active;
 
+		fileInfo.name = normalizeUploadFileName(fileInfo.name);
 		[uploadPath, uploadRecord] = await createUploadRecord({ rid, fileInfo, tmid, isForceTryAgain });
 		if (!uploadPath || !uploadRecord) {
 			throw new Error("Couldn't create upload record");
@@ -35,21 +36,11 @@ export async function sendFileMessageV2(
 		const { file, getContent, fileContent } = await Encryption.encryptFile(rid, fileInfo);
 		file.path = await copyFileToCacheDirectoryIfNeeded(file.path, file.name);
 
-		// Decode filename if URL encoded (fixes Chinese filename issue)
-		let decodedFileName = file.name;
-		if (decodedFileName) {
-			try {
-				decodedFileName = decodeURIComponent(decodedFileName);
-			} catch {
-				// keep original if decode fails
-			}
-		}
-
 		const formData: IFormData[] = [];
 		formData.push({
 			name: 'file',
 			type: file.type,
-			filename: decodedFileName,
+			filename: file.name,
 			uri: file.path
 		});
 		if (fileContent) {
