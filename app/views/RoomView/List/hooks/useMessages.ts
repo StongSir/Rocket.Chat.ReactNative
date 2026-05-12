@@ -9,10 +9,14 @@ import { getThreadById } from '../../../../lib/database/services/Thread';
 import { compareServerVersion, useDebounce } from '../../../../lib/methods/helpers';
 import { debugSearchJump } from '../../../../lib/methods/helpers/debugSearchJump';
 import { readThreads } from '../../../../lib/services/restApi';
-import { getJumpToMessageFetchCount, shouldUseJumpWindow } from '../utils';
+import {
+	getExpandedJumpWindowSideSize,
+	getJumpToMessageFetchCount,
+	getJumpWindowMessages,
+	JUMP_WINDOW_SIDE_SIZE,
+	shouldUseJumpWindow
+} from '../utils';
 import { QUERY_SIZE } from '../constants';
-
-const JUMP_WINDOW_SIDE_SIZE = 25;
 
 export const useMessages = ({
 	rid,
@@ -28,14 +32,22 @@ export const useMessages = ({
 	hideSystemMessages: string[];
 }) => {
 	const [messages, setMessages] = useState<TAnyMessageModel[]>([]);
+	const [isJumpWindow, setIsJumpWindow] = useState(false);
 	const thread = useRef<TAnyMessageModel | null>(null);
 	const count = useRef(0);
 	const subscription = useRef<Subscription | null>(null);
 	const messagesIds = useRef<string[]>([]);
 	const renderResolvers = useRef<(() => void)[]>([]);
+	const jumpWindowSourceMessages = useRef<TAnyMessageModel[]>([]);
+	const jumpWindowTargetMessageId = useRef<string | null>(null);
+	const jumpWindowSideSize = useRef(JUMP_WINDOW_SIDE_SIZE);
 
 	const fetchMessages = useCallback(async (forceCount?: number) => {
 		unsubscribe();
+		setIsJumpWindow(false);
+		jumpWindowSourceMessages.current = [];
+		jumpWindowTargetMessageId.current = null;
+		jumpWindowSideSize.current = JUMP_WINDOW_SIDE_SIZE;
 		count.current = forceCount || (count.current + QUERY_SIZE);
 
 		if (!rid) {
@@ -124,6 +136,73 @@ export const useMessages = ({
 		messagesIds.current = newMessages.map(m => m.id);
 	}, []);
 
+	const filterMessages = useCallback(
+		(newMessages: TAnyMessageModel[]) => {
+			if (compareServerVersion(serverVersion, 'lowerThan', '3.16.0') || hideSystemMessages.length) {
+				return newMessages.filter(m => !m.t || !hideSystemMessages?.includes(m.t));
+			}
+			return newMessages;
+		},
+		[serverVersion, hideSystemMessages]
+	);
+
+	const subscribeJumpWindow = useCallback(
+		async (targetMessageId: string) => {
+			unsubscribe();
+			setIsJumpWindow(true);
+			jumpWindowTargetMessageId.current = targetMessageId;
+			jumpWindowSideSize.current = JUMP_WINDOW_SIDE_SIZE;
+			const db = database.active;
+			const whereClause = [Q.where('rid', rid), Q.sortBy('ts', Q.desc)] as (Q.WhereDescription | Q.Or)[];
+			if (!showMessageInMainThread) {
+				whereClause.push(Q.or(Q.where('tmid', null), Q.where('tshow', Q.eq(true))));
+			}
+			const observable = db.get('messages').query(...whereClause).observe();
+			subscription.current = observable.subscribe(result => {
+				const filteredMessages = filterMessages(result as TAnyMessageModel[]);
+				jumpWindowSourceMessages.current = filteredMessages;
+				const jumpMessages = getJumpWindowMessages(filteredMessages, targetMessageId, jumpWindowSideSize.current);
+				const targetIndex = jumpMessages.findIndex(message => message.id === targetMessageId);
+				count.current = jumpMessages.length;
+				debugSearchJump('useMessages.subscribeJumpWindow.update', {
+					messageId: targetMessageId,
+					count: jumpMessages.length,
+					targetIndex,
+					hasTarget: jumpMessages.some(item => item.id === targetMessageId),
+					first: jumpMessages[0]?.id,
+					last: jumpMessages[jumpMessages.length - 1]?.id
+				});
+				updateMessagesState(jumpMessages);
+			});
+		},
+		[rid, showMessageInMainThread, filterMessages, updateMessagesState]
+	);
+
+	const expandJumpWindow = useCallback(() => {
+		const targetMessageId = jumpWindowTargetMessageId.current;
+		if (!targetMessageId || !jumpWindowSourceMessages.current.length) {
+			debugSearchJump('useMessages.expandJumpWindow.skipped', { targetMessageId });
+			return;
+		}
+		jumpWindowSideSize.current = getExpandedJumpWindowSideSize(jumpWindowSideSize.current);
+		const jumpMessages = getJumpWindowMessages(
+			jumpWindowSourceMessages.current,
+			targetMessageId,
+			jumpWindowSideSize.current
+		);
+		const targetIndex = jumpMessages.findIndex(message => message.id === targetMessageId);
+		count.current = jumpMessages.length;
+		debugSearchJump('useMessages.expandJumpWindow.done', {
+			messageId: targetMessageId,
+			sideSize: jumpWindowSideSize.current,
+			count: jumpMessages.length,
+			targetIndex,
+			first: jumpMessages[0]?.id,
+			last: jumpMessages[jumpMessages.length - 1]?.id
+		});
+		updateMessagesState(jumpMessages);
+	}, [updateMessagesState]);
+
 	const waitForMessagesRender = useCallback(
 		() =>
 			new Promise<void>(resolve => {
@@ -150,29 +229,20 @@ export const useMessages = ({
 	const loadMessageWindow = useCallback(
 		async (message: TAnyMessageModel, messageDate: number) => {
 			unsubscribe();
-			const db = database.active;
-			let newerMessages: TAnyMessageModel[];
-			let olderMessages: TAnyMessageModel[];
-
-			if (tmid) {
-				newerMessages = (await db
-					.get('thread_messages')
-					.query(Q.where('rid', tmid), Q.where('ts', Q.gt(messageDate)), Q.sortBy('ts', Q.asc), Q.take(JUMP_WINDOW_SIDE_SIZE))
-					.fetch()) as TAnyMessageModel[];
-				olderMessages = (await db
-					.get('thread_messages')
-					.query(Q.where('rid', tmid), Q.where('ts', Q.lte(messageDate)), Q.sortBy('ts', Q.desc), Q.take(JUMP_WINDOW_SIDE_SIZE))
-					.fetch()) as TAnyMessageModel[];
-			} else {
-				newerMessages = (await db
-					.get('messages')
-					.query(...getMainRoomWhereClause(Q.gt(messageDate)), Q.sortBy('ts', Q.asc), Q.take(JUMP_WINDOW_SIDE_SIZE))
-					.fetch()) as TAnyMessageModel[];
-				olderMessages = (await db
-					.get('messages')
-					.query(...getMainRoomWhereClause(Q.lte(messageDate)), Q.sortBy('ts', Q.desc), Q.take(JUMP_WINDOW_SIDE_SIZE))
-					.fetch()) as TAnyMessageModel[];
+			if (!tmid) {
+				await subscribeJumpWindow(message.id);
+				return;
 			}
+
+			const db = database.active;
+			const newerMessages = (await db
+				.get('thread_messages')
+				.query(Q.where('rid', tmid), Q.where('ts', Q.gt(messageDate)), Q.sortBy('ts', Q.asc), Q.take(JUMP_WINDOW_SIDE_SIZE))
+				.fetch()) as TAnyMessageModel[];
+			const olderMessages = (await db
+				.get('thread_messages')
+				.query(Q.where('rid', tmid), Q.where('ts', Q.lte(messageDate)), Q.sortBy('ts', Q.desc), Q.take(JUMP_WINDOW_SIDE_SIZE))
+				.fetch()) as TAnyMessageModel[];
 
 			const messageMap = new Map<string, TAnyMessageModel>();
 			[...newerMessages, message, ...olderMessages].forEach(item => {
@@ -184,6 +254,7 @@ export const useMessages = ({
 				return bTime - aTime;
 			});
 			count.current = newMessages.length;
+			setIsJumpWindow(true);
 			debugSearchJump('useMessages.loadMessageWindow', {
 				messageId: message.id,
 				count: newMessages.length,
@@ -193,7 +264,7 @@ export const useMessages = ({
 			});
 			updateMessagesState(newMessages);
 		},
-		[tmid, getMainRoomWhereClause, updateMessagesState]
+		[tmid, subscribeJumpWindow, updateMessagesState]
 	);
 
 	const waitUntilMessageIsLoaded = useCallback(
@@ -265,5 +336,5 @@ export const useMessages = ({
 		});
 	}, [tmid, fetchMessages, waitUntilMessageIsLoaded, waitForMessagesRender, getMainRoomWhereClause, loadMessageWindow]);
 
-	return [messages, messagesIds, fetchMessages, loadMessage] as const;
+	return [messages, messagesIds, fetchMessages, loadMessage, isJumpWindow, expandJumpWindow] as const;
 };

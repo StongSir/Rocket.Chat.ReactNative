@@ -22,6 +22,24 @@ export interface IGlobalSearchResult {
 	rid: string;
 }
 
+export const getGlobalSearchVisualState = ({
+	isSearching,
+	resultCount,
+	searchText
+}: {
+	isSearching: boolean;
+	resultCount: number;
+	searchText: string;
+}) => {
+	const hasSearchText = searchText.trim().length > 0;
+	return {
+		showInputLoading: isSearching && hasSearchText,
+		showFullLoading: isSearching && hasSearchText && resultCount === 0,
+		showInlineLoading: isSearching && hasSearchText && resultCount > 0,
+		showEmpty: !isSearching && hasSearchText && resultCount === 0
+	};
+};
+
 type TSearchProvider = {
 	settings?: {
 		GlobalSearchEnabled?: boolean;

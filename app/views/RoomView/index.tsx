@@ -1460,7 +1460,7 @@ class RoomView extends React.Component<IRoomViewProps, IRoomViewState> {
 		return undefined;
 	};
 
-	renderItem = (item: TAnyMessageModel, previousItem: TAnyMessageModel, highlightedMessage?: string) => {
+	renderItem = (item: TAnyMessageModel, previousItem: TAnyMessageModel, highlightedMessage?: string, isJumpWindow?: boolean) => {
 		const { room, lastOpen, canAutoTranslate } = this.state;
 		const {
 			user,
@@ -1495,6 +1495,9 @@ class RoomView extends React.Component<IRoomViewProps, IRoomViewState> {
 		let content = null;
 		if (item.t && MESSAGE_TYPE_ANY_LOAD.includes(item.t as MessageTypeLoad)) {
 			const runOnRender = () => {
+				if (isJumpWindow) {
+					return true;
+				}
 				if (item.t === MessageTypeLoad.MORE) {
 					if (!previousItem) return true;
 					if (previousItem?.tmid) return true;

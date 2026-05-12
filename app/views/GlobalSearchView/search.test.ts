@@ -1,4 +1,4 @@
-import { fetchGlobalSearchResults, getSearchMessageId, resolveSearchResultRoomInfo } from './search';
+import { fetchGlobalSearchResults, getGlobalSearchVisualState, getSearchMessageId, resolveSearchResultRoomInfo } from './search';
 
 const serverMessage = {
 	_id: 'server-message-id',
@@ -31,6 +31,32 @@ describe('GlobalSearchView search', () => {
 
 		it('uses id from local messages', () => {
 			expect(getSearchMessageId({ id: 'local-message-id' })).toBe('local-message-id');
+		});
+	});
+
+	describe('getGlobalSearchVisualState', () => {
+		it('shows a full loading placeholder only while searching with no visible results', () => {
+			expect(getGlobalSearchVisualState({ isSearching: true, resultCount: 0, searchText: 'hello' })).toEqual({
+				showInputLoading: true,
+				showFullLoading: true,
+				showInlineLoading: false,
+				showEmpty: false
+			});
+			expect(getGlobalSearchVisualState({ isSearching: false, resultCount: 0, searchText: 'hello' })).toEqual({
+				showInputLoading: false,
+				showFullLoading: false,
+				showInlineLoading: false,
+				showEmpty: true
+			});
+		});
+
+		it('keeps current results visible and adds inline loading while a new search is running', () => {
+			expect(getGlobalSearchVisualState({ isSearching: true, resultCount: 3, searchText: 'hello' })).toEqual({
+				showInputLoading: true,
+				showFullLoading: false,
+				showInlineLoading: true,
+				showEmpty: false
+			});
 		});
 	});
 

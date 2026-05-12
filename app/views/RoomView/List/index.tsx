@@ -9,7 +9,7 @@ import { useMessages, useScroll } from './hooks';
 
 const ListContainer = forwardRef<IListContainerRef, IListContainerProps>(
 	({ rid, tmid, renderRow, showMessageInMainThread, serverVersion, hideSystemMessages, listRef }, ref) => {
-		const [messages, messagesIds, fetchMessages, loadMessage] = useMessages({
+		const [messages, messagesIds, fetchMessages, loadMessage, isJumpWindow, expandJumpWindow] = useMessages({
 			rid,
 			tmid,
 			showMessageInMainThread,
@@ -25,7 +25,19 @@ const ListContainer = forwardRef<IListContainerRef, IListContainerProps>(
 			highlightedMessageId
 		} = useScroll({ listRef, messagesIds });
 
+		const expandJumpWindowOnBoundary = useDebounce(() => {
+			if (isJumpWindow) {
+				debugSearchJump('ListContainer.boundaryReached.expandJumpWindow');
+				expandJumpWindow();
+			}
+		}, 300);
+
 		const onEndReached = useDebounce(() => {
+			if (isJumpWindow) {
+				debugSearchJump('ListContainer.onEndReached.jumpWindowBoundary');
+				expandJumpWindowOnBoundary();
+				return;
+			}
 			fetchMessages();
 		}, 300);
 
@@ -44,7 +56,8 @@ const ListContainer = forwardRef<IListContainerRef, IListContainerProps>(
 			cancelJumpToMessage
 		}));
 
-		const renderItem: IListProps['renderItem'] = ({ item, index }) => renderRow(item, messages[index + 1], highlightedMessageId);
+		const renderItem: IListProps['renderItem'] = ({ item, index }) =>
+			renderRow(item, messages[index + 1], highlightedMessageId, isJumpWindow);
 
 		return (
 			<>
@@ -54,6 +67,7 @@ const ListContainer = forwardRef<IListContainerRef, IListContainerProps>(
 					data={messages}
 					renderItem={renderItem}
 					onEndReached={onEndReached}
+					onScrollBoundaryReached={isJumpWindow ? expandJumpWindowOnBoundary : undefined}
 					onScrollToIndexFailed={handleScrollToIndexFailed}
 					viewabilityConfigCallbackPairs={viewabilityConfigCallbackPairs.current}
 					jumpToBottom={jumpToBottom}

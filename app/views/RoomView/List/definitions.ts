@@ -11,6 +11,7 @@ export type TMessagesIdsRef = RefObject<string[]>;
 export interface IListProps extends FlatListProps<TAnyMessageModel> {
 	listRef: TListRef;
 	jumpToBottom: () => void;
+	onScrollBoundaryReached?: () => void;
 }
 
 export interface IListContainerRef {

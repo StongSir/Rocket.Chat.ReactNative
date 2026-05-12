@@ -4,6 +4,7 @@ import { type ViewToken, type ViewabilityConfigCallbackPairs } from 'react-nativ
 import { type IListContainerRef, type IListProps, type TListRef, type TMessagesIdsRef } from '../definitions';
 import { VIEWABILITY_CONFIG } from '../constants';
 import { debugSearchJump } from '../../../../lib/methods/helpers/debugSearchJump';
+import { getScrollToIndexFailedOffset } from '../utils';
 
 export const useScroll = ({ listRef, messagesIds }: { listRef: TListRef; messagesIds: TMessagesIdsRef }) => {
 	const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
@@ -34,8 +35,12 @@ export const useScroll = ({ listRef, messagesIds }: { listRef: TListRef; message
 	]);
 
 	const handleScrollToIndexFailed: IListProps['onScrollToIndexFailed'] = params => {
-		debugSearchJump('useScroll.onScrollToIndexFailed', params);
-		listRef.current?.scrollToIndex({ index: params.highestMeasuredFrameIndex, animated: false });
+		const offset = getScrollToIndexFailedOffset(params);
+		debugSearchJump('useScroll.onScrollToIndexFailed', { ...params, offset });
+		listRef.current?.scrollToOffset({ offset, animated: false });
+		setTimeout(() => {
+			listRef.current?.scrollToIndex({ index: params.index, viewPosition: 0.5, viewOffset: 100, animated: false });
+		}, 100);
 	};
 
 	const setHighlightTimeout = () => {

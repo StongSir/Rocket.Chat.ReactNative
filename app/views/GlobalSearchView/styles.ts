@@ -10,6 +10,9 @@ export default StyleSheet.create({
     list: {
         flex: 1
     },
+    inputWithLoading: {
+        paddingRight: 45
+    },
     divider: {
         width: '100%',
         height: StyleSheet.hairlineWidth,
@@ -58,5 +61,8 @@ export default StyleSheet.create({
     separator: {
         height: StyleSheet.hairlineWidth,
         marginLeft: 16
+    },
+    footerLoading: {
+        paddingVertical: 16
     }
 });

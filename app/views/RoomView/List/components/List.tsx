@@ -19,18 +19,32 @@ const styles = StyleSheet.create({
 	}
 });
 
-const List = ({ listRef, jumpToBottom, ...props }: IListProps) => {
+const BOUNDARY_THRESHOLD = 120;
+
+const List = ({ listRef, jumpToBottom, onScrollBoundaryReached, ...props }: IListProps) => {
 	const [visible, setVisible] = useState(false);
 	const { isAutocompleteVisible } = useRoomContext();
-	const scrollHandler = useAnimatedScrollHandler({
-		onScroll: event => {
-			if (event.contentOffset.y > SCROLL_LIMIT) {
-				runOnJS(setVisible)(true);
-			} else {
-				runOnJS(setVisible)(false);
+	const scrollHandler = useAnimatedScrollHandler(
+		{
+			onScroll: event => {
+				if (event.contentOffset.y > SCROLL_LIMIT) {
+					runOnJS(setVisible)(true);
+				} else {
+					runOnJS(setVisible)(false);
+				}
+
+				if (onScrollBoundaryReached) {
+					const distanceFromStart = event.contentOffset.y;
+					const distanceFromEnd = event.contentSize.height - event.layoutMeasurement.height - event.contentOffset.y;
+					const hasScrollableContent = event.contentSize.height > event.layoutMeasurement.height + BOUNDARY_THRESHOLD;
+					if (hasScrollableContent && (distanceFromStart <= BOUNDARY_THRESHOLD || distanceFromEnd <= BOUNDARY_THRESHOLD)) {
+						runOnJS(onScrollBoundaryReached)();
+					}
+				}
 			}
-		}
-	});
+		},
+		[onScrollBoundaryReached]
+	);
 
 	return (
 		<View style={styles.list}>

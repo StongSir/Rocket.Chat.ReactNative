@@ -24,6 +24,7 @@ import sdk from '../../lib/services/sdk';
 import styles from './styles';
 import {
 	fetchGlobalSearchResults,
+	getGlobalSearchVisualState,
 	getSearchMessageId,
 	getSearchMessageRid,
 	resolveSearchResultRoomInfo,
@@ -39,6 +40,7 @@ const GlobalSearchView = () => {
 	const [results, setResults] = useState<IGlobalSearchResult[]>([]);
 	const [loading, setLoading] = useState(false);
 	const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const searchRequestId = useRef(0);
 	const isMasterDetail = useAppSelector(state => state.app.isMasterDetail);
 	const useRealName = useAppSelector(state => state.settings.UI_Use_Real_Name) as boolean;
 	const userId = useAppSelector(state => state.login.user.id) as string | undefined;
@@ -97,15 +99,16 @@ const GlobalSearchView = () => {
 	}, []);
 
 	const searchMessages = useCallback(
-		async (text: string) => {
+		async (text: string, requestId: number) => {
 			if (!text.trim()) {
-				setResults([]);
-				setLoading(false);
+				if (requestId === searchRequestId.current) {
+					setResults([]);
+					setLoading(false);
+				}
 				return;
 			}
 
 			try {
-				setLoading(true);
 				const searchResults = await fetchGlobalSearchResults({
 					text,
 					userId,
@@ -113,12 +116,19 @@ const GlobalSearchView = () => {
 					methodCallWrapper: sdk.methodCallWrapper.bind(sdk),
 					localSearch: localSearchMessages
 				});
-				setResults(await resolveSearchResultRoomInfo(searchResults, getSubscriptionByRoomId, getRoomTitle));
+				const resolvedResults = await resolveSearchResultRoomInfo(searchResults, getSubscriptionByRoomId, getRoomTitle);
+				if (requestId === searchRequestId.current) {
+					setResults(resolvedResults);
+				}
 			} catch (e) {
 				console.log('GlobalSearchView searchMessages error:', e);
-				setResults([]);
+				if (requestId === searchRequestId.current) {
+					setResults([]);
+				}
 			} finally {
-				setLoading(false);
+				if (requestId === searchRequestId.current) {
+					setLoading(false);
+				}
 			}
 		},
 		[localSearchMessages, userId]
@@ -127,11 +137,19 @@ const GlobalSearchView = () => {
 	const handleSearch = useCallback(
 		(text: string) => {
 			setSearchText(text);
+			searchRequestId.current += 1;
+			const requestId = searchRequestId.current;
 			if (debounceTimer.current) {
 				clearTimeout(debounceTimer.current);
 			}
+			if (!text.trim()) {
+				setLoading(false);
+				setResults([]);
+				return;
+			}
+			setLoading(true);
 			debounceTimer.current = setTimeout(() => {
-				searchMessages(text);
+				searchMessages(text, requestId);
 			}, SEARCH_DEBOUNCE);
 		},
 		[searchMessages]
@@ -242,7 +260,8 @@ const GlobalSearchView = () => {
 	const renderSeparator = () => <View style={[styles.separator, { backgroundColor: colors.strokeLight }]} />;
 
 	const renderEmpty = () => {
-		if (loading || !searchText.trim()) {
+		const visualState = getGlobalSearchVisualState({ isSearching: loading, resultCount: results.length, searchText });
+		if (!visualState.showEmpty) {
 			return null;
 		}
 		return (
@@ -252,32 +271,35 @@ const GlobalSearchView = () => {
 		);
 	};
 
+	const visualState = getGlobalSearchVisualState({ isSearching: loading, resultCount: results.length, searchText });
+
 	return (
 		<SafeAreaView style={{ backgroundColor: themes[theme].surfaceRoom }} testID='global-search-view'>
 			<View style={styles.searchContainer}>
 				<FormTextInput
 					autoFocus
+					inputStyle={visualState.showInputLoading ? styles.inputWithLoading : undefined}
 					label={I18n.t('Search')}
+					loading={visualState.showInputLoading}
 					onChangeText={handleSearch}
+					onClearInput={visualState.showInputLoading ? undefined : () => handleSearch('')}
 					placeholder={I18n.t('Search_Messages')}
 					testID='global-search-view-input'
+					value={searchText}
 				/>
 				<View style={[styles.divider, { backgroundColor: colors.strokeLight }]} />
 			</View>
-			{loading && results.length === 0 ? (
-				<ActivityIndicator />
-			) : (
-				<FlatList
-					data={results}
-					renderItem={renderItem}
-					style={[styles.list, { backgroundColor: colors.surfaceRoom }]}
-					keyExtractor={item => getSearchMessageId(item.message)}
-					ItemSeparatorComponent={renderSeparator}
-					ListEmptyComponent={renderEmpty}
-					removeClippedSubviews={isIOS}
-					{...scrollPersistTaps}
-				/>
-			)}
+			<FlatList
+				data={results}
+				renderItem={renderItem}
+				style={[styles.list, { backgroundColor: colors.surfaceRoom }]}
+				keyExtractor={item => getSearchMessageId(item.message)}
+				ItemSeparatorComponent={renderSeparator}
+				ListEmptyComponent={renderEmpty}
+				ListFooterComponent={visualState.showFullLoading || visualState.showInlineLoading ? <ActivityIndicator style={styles.footerLoading} /> : null}
+				removeClippedSubviews={isIOS}
+				{...scrollPersistTaps}
+			/>
 		</SafeAreaView>
 	);
 };
