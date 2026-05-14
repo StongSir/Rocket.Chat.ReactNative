@@ -42,7 +42,7 @@ import { searchMessages } from '../../lib/services/restApi';
 import { type TNavigation } from '../../stacks/stackType';
 import Navigation from '../../lib/navigation/appNavigation';
 import { debugSearchJump } from '../../lib/methods/helpers/debugSearchJump';
-import { appendUniqueMessages, getMessageId, normalizeSearchText } from './utils';
+import { appendUniqueMessages, getMessageId, normalizeSearchText, searchMessagesByTextAndFileTitle } from './utils';
 
 const QUERY_SIZE = 50;
 
@@ -168,29 +168,34 @@ class SearchMessagesView extends React.Component<ISearchMessagesViewProps, ISear
 				.fetch();
 			return messages;
 		}
-		// If it's not a encrypted room, search messages on the server
-		const result = await searchMessages(this.rid, normalizedSearchText, QUERY_SIZE, offset);
-		if (result.success) {
-			const urlRenderMessages = result.messages?.map(message => {
-				if (message.urls && message.urls.length > 0) {
-					message.urls = message.urls?.map((url, index) => {
-						if (url.meta) {
-							return {
-								_id: index,
-								title: url.meta.pageTitle,
-								description: url.meta.ogDescription,
-								image: url.meta.ogImage,
-								url: url.url
-							} as IUrl;
-						}
-						return {} as IUrl;
-					});
-				}
-				return message;
-			}) ?? [];
+		const fetchMessages = async (text: string): Promise<IMessageFromServer[]> => {
+			const result = await searchMessages(this.rid, text, QUERY_SIZE, offset);
+			if (!result.success) {
+				return [];
+			}
+			const urlRenderMessages =
+				result.messages?.map(message => {
+					if (message.urls && message.urls.length > 0) {
+						message.urls = message.urls?.map((url, index) => {
+							if (url.meta) {
+								return {
+									_id: index,
+									title: url.meta.pageTitle,
+									description: url.meta.ogDescription,
+									image: url.meta.ogImage,
+									url: url.url
+								} as IUrl;
+							}
+							return {} as IUrl;
+						});
+					}
+					return message;
+				}) ?? [];
 			return urlRenderMessages;
-		}
-		return [];
+		};
+
+		// If it's not a encrypted room, search messages on the server
+		return searchMessagesByTextAndFileTitle(normalizedSearchText, fetchMessages);
 	};
 
 	isCurrentSearch = (requestId: number, searchText: string) =>
@@ -205,7 +210,7 @@ class SearchMessagesView extends React.Component<ISearchMessagesViewProps, ISear
 			return;
 		}
 		try {
-			const offset = this.offset;
+			const { offset } = this;
 			const messages = await this.searchMessages(normalizedSearchText, offset);
 			if (!this.isCurrentSearch(requestId, normalizedSearchText)) {
 				return;

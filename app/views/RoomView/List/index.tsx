@@ -1,4 +1,4 @@
-import React, { forwardRef, useImperativeHandle } from 'react';
+import React, { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
 
 import { useDebounce } from '../../../lib/methods/helpers';
 import { debugSearchJump } from '../../../lib/methods/helpers/debugSearchJump';
@@ -6,9 +6,14 @@ import EmptyRoom from './components/EmptyRoom';
 import List from './components/List';
 import { type IListContainerProps, type IListContainerRef, type IListProps } from './definitions';
 import { useMessages, useScroll } from './hooks';
+import { shouldHandleJumpWindowBoundary } from './utils';
+
+const BOUNDARY_EXPANSION_SUPPRESSION_MS = 1200;
 
 const ListContainer = forwardRef<IListContainerRef, IListContainerProps>(
 	({ rid, tmid, renderRow, showMessageInMainThread, serverVersion, hideSystemMessages, listRef }, ref) => {
+		const isBoundaryExpansionSuppressed = useRef(false);
+		const boundaryExpansionSuppressionTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 		const [messages, messagesIds, fetchMessages, loadMessage, isJumpWindow, expandJumpWindow] = useMessages({
 			rid,
 			tmid,
@@ -25,11 +30,37 @@ const ListContainer = forwardRef<IListContainerRef, IListContainerProps>(
 			highlightedMessageId
 		} = useScroll({ listRef, messagesIds });
 
-		const expandJumpWindowOnBoundary = useDebounce(() => {
-			if (isJumpWindow) {
-				debugSearchJump('ListContainer.boundaryReached.expandJumpWindow');
-				expandJumpWindow();
+		useEffect(
+			() => () => {
+				if (boundaryExpansionSuppressionTimeout.current) {
+					clearTimeout(boundaryExpansionSuppressionTimeout.current);
+				}
+			},
+			[]
+		);
+
+		const suppressBoundaryExpansion = () => {
+			isBoundaryExpansionSuppressed.current = true;
+			if (boundaryExpansionSuppressionTimeout.current) {
+				clearTimeout(boundaryExpansionSuppressionTimeout.current);
 			}
+			boundaryExpansionSuppressionTimeout.current = setTimeout(() => {
+				isBoundaryExpansionSuppressed.current = false;
+			}, BOUNDARY_EXPANSION_SUPPRESSION_MS);
+		};
+
+		const expandJumpWindowOnBoundary = useDebounce(() => {
+			if (
+				!shouldHandleJumpWindowBoundary({ isJumpWindow, isBoundaryExpansionSuppressed: isBoundaryExpansionSuppressed.current })
+			) {
+				debugSearchJump('ListContainer.boundaryReached.skipped', {
+					isJumpWindow,
+					isBoundaryExpansionSuppressed: isBoundaryExpansionSuppressed.current
+				});
+				return;
+			}
+			debugSearchJump('ListContainer.boundaryReached.expandJumpWindow');
+			expandJumpWindow();
 		}, 300);
 
 		const onEndReached = useDebounce(() => {
@@ -50,6 +81,7 @@ const ListContainer = forwardRef<IListContainerRef, IListContainerProps>(
 					loaded: messagesIds.current.includes(messageId),
 					count: messagesIds.current.length
 				});
+				suppressBoundaryExpansion();
 				await scrollJumpToMessage(messageId);
 				debugSearchJump('ListContainer.scrollJumpToMessage.done', { messageId });
 			},

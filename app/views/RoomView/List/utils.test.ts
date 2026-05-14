@@ -4,6 +4,7 @@ import {
 	getJumpToMessageFetchCount,
 	getJumpWindowMessages,
 	getScrollToIndexFailedOffset,
+	shouldHandleJumpWindowBoundary,
 	shouldUseJumpWindow
 } from './utils';
 
@@ -75,6 +76,20 @@ describe('RoomView List utils', () => {
 		it('expands the jump window by one side chunk at a time', () => {
 			expect(getExpandedJumpWindowSideSize(25)).toBe(50);
 			expect(getExpandedJumpWindowSideSize(50)).toBe(75);
+		});
+	});
+
+	describe('shouldHandleJumpWindowBoundary', () => {
+		it('does not expand a jump window while boundary expansion is suppressed after a search jump', () => {
+			expect(shouldHandleJumpWindowBoundary({ isJumpWindow: true, isBoundaryExpansionSuppressed: true })).toBe(false);
+		});
+
+		it('expands a jump window when boundary expansion is not suppressed', () => {
+			expect(shouldHandleJumpWindowBoundary({ isJumpWindow: true, isBoundaryExpansionSuppressed: false })).toBe(true);
+		});
+
+		it('does not expand when the list is not showing a jump window', () => {
+			expect(shouldHandleJumpWindowBoundary({ isJumpWindow: false, isBoundaryExpansionSuppressed: false })).toBe(false);
 		});
 	});
 });

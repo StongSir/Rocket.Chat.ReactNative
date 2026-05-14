@@ -25,15 +25,22 @@ export const getJumpToMessageFetchCount = ({
 export const shouldUseJumpWindow = ({ forceCount, querySize = QUERY_SIZE }: { forceCount: number; querySize?: number }) =>
 	forceCount > querySize * 3;
 
-export const getScrollToIndexFailedOffset = ({
-	index,
-	averageItemLength
+export const shouldHandleJumpWindowBoundary = ({
+	isJumpWindow,
+	isBoundaryExpansionSuppressed
 }: {
-	index: number;
-	averageItemLength: number;
-}) => Math.max(0, index * averageItemLength);
+	isJumpWindow: boolean;
+	isBoundaryExpansionSuppressed: boolean;
+}) => isJumpWindow && !isBoundaryExpansionSuppressed;
 
-export const getJumpWindowMessages = (messages: TAnyMessageModel[], targetMessageId: string, sideSize = JUMP_WINDOW_SIDE_SIZE) => {
+export const getScrollToIndexFailedOffset = ({ index, averageItemLength }: { index: number; averageItemLength: number }) =>
+	Math.max(0, index * averageItemLength);
+
+export const getJumpWindowMessages = (
+	messages: TAnyMessageModel[],
+	targetMessageId: string,
+	sideSize = JUMP_WINDOW_SIDE_SIZE
+) => {
 	const targetIndex = messages.findIndex(message => message.id === targetMessageId);
 	if (targetIndex === -1) {
 		return [];

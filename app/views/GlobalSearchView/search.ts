@@ -1,3 +1,5 @@
+import { Q } from '@nozbe/watermelondb';
+
 import type { SubscriptionType, TMessageModel, TSubscriptionModel } from '../../definitions';
 
 export type TGlobalSearchMessage = Partial<TMessageModel> & {
@@ -58,6 +60,25 @@ export const getSearchMessageId = (message: Pick<TGlobalSearchMessage, '_id' | '
 
 export const getSearchMessageRid = (message: TGlobalSearchMessage): string => message.rid ?? message._raw?.rid ?? '';
 
+const buildFileTitleSearchText = (searchText: string): string => {
+	const normalizedSearchText = searchText.replace(/"/g, ' ').replace(/\s+/g, ' ').trim();
+
+	return normalizedSearchText ? `file-title:"${normalizedSearchText}"` : '';
+};
+
+export const getGlobalSearchMessagePreview = (message: TGlobalSearchMessage): string => {
+	const messageText = message.msg?.trim();
+	if (messageText) {
+		return messageText;
+	}
+
+	const attachment = message.attachments?.[0];
+	return attachment?.title || attachment?.description || '';
+};
+
+export const getLocalGlobalSearchTextCondition = (likeString: string) =>
+	Q.or(Q.where('msg', Q.like(`%${likeString}%`)), Q.where('attachments', Q.like(`%${likeString}%`)));
+
 const normalizeSearchMessage = (message: TGlobalSearchMessage): TGlobalSearchMessage => {
 	if (message.ts && typeof message.ts === 'object' && '$date' in message.ts) {
 		return {
@@ -89,6 +110,23 @@ const mapServerSearchResults = (response: TServerSearchResponse): IGlobalSearchR
 const isGlobalSearchEnabled = (provider: TSearchProvider | undefined): boolean =>
 	provider?.settings?.GlobalSearchEnabled === true;
 
+const appendUniqueResults = (
+	currentResults: IGlobalSearchResult[],
+	incomingResults: IGlobalSearchResult[]
+): IGlobalSearchResult[] => {
+	const resultIds = new Set(currentResults.map(result => getSearchMessageId(result.message)).filter(Boolean));
+	const uniqueIncomingResults = incomingResults.filter(result => {
+		const messageId = getSearchMessageId(result.message);
+		if (!messageId || resultIds.has(messageId)) {
+			return false;
+		}
+		resultIds.add(messageId);
+		return true;
+	});
+
+	return [...currentResults, ...uniqueIncomingResults];
+};
+
 export const fetchGlobalSearchResults = async ({
 	text,
 	userId,
@@ -110,13 +148,31 @@ export const fetchGlobalSearchResults = async ({
 	try {
 		const provider = (await methodCallWrapper('rocketchatSearch.getProvider')) as TSearchProvider | undefined;
 		if (isGlobalSearchEnabled(provider)) {
+			const searchPayload = { limit, searchAll: true };
+			const searchContext = { uid: userId, rid: '' };
 			const response = (await methodCallWrapper(
 				'rocketchatSearch.search',
 				searchText,
-				{ uid: userId, rid: '' },
-				{ limit, searchAll: true }
+				searchContext,
+				searchPayload
 			)) as TServerSearchResponse;
-			return mapServerSearchResults(response);
+			const textResults = mapServerSearchResults(response);
+			const fileTitleSearchText = buildFileTitleSearchText(searchText);
+			if (!fileTitleSearchText) {
+				return textResults;
+			}
+
+			try {
+				const fileTitleResponse = (await methodCallWrapper(
+					'rocketchatSearch.search',
+					fileTitleSearchText,
+					searchContext,
+					searchPayload
+				)) as TServerSearchResponse;
+				return appendUniqueResults(textResults, mapServerSearchResults(fileTitleResponse));
+			} catch {
+				return textResults;
+			}
 		}
 	} catch {
 		// Fall through to local search when the server method is unavailable or fails.

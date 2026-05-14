@@ -1,4 +1,11 @@
-import { fetchGlobalSearchResults, getGlobalSearchVisualState, getSearchMessageId, resolveSearchResultRoomInfo } from './search';
+import {
+	fetchGlobalSearchResults,
+	getGlobalSearchMessagePreview,
+	getGlobalSearchVisualState,
+	getLocalGlobalSearchTextCondition,
+	getSearchMessageId,
+	resolveSearchResultRoomInfo
+} from './search';
 
 const serverMessage = {
 	_id: 'server-message-id',
@@ -21,6 +28,17 @@ const serverMessageWithEjsonDate = {
 	ts: {
 		$date: 1778457600000
 	}
+};
+
+const serverFileMessage = {
+	...serverMessage,
+	_id: 'server-file-message-id',
+	msg: '',
+	attachments: [
+		{
+			title: 'weekly-report.pdf'
+		}
+	]
 };
 
 describe('GlobalSearchView search', () => {
@@ -60,8 +78,44 @@ describe('GlobalSearchView search', () => {
 		});
 	});
 
+	describe('getGlobalSearchMessagePreview', () => {
+		it('uses message text when present', () => {
+			expect(getGlobalSearchMessagePreview(serverMessage)).toBe('hello from server');
+		});
+
+		it('uses the first attachment title when the message text is empty', () => {
+			expect(getGlobalSearchMessagePreview(serverFileMessage)).toBe('weekly-report.pdf');
+		});
+	});
+
+	describe('getLocalGlobalSearchTextCondition', () => {
+		it('matches local message text or serialized attachment data', () => {
+			expect(getLocalGlobalSearchTextCondition('report')).toEqual({
+				type: 'or',
+				conditions: [
+					{
+						type: 'where',
+						left: 'msg',
+						comparison: {
+							operator: 'like',
+							right: { value: '%report%' }
+						}
+					},
+					{
+						type: 'where',
+						left: 'attachments',
+						comparison: {
+							operator: 'like',
+							right: { value: '%report%' }
+						}
+					}
+				]
+			});
+		});
+	});
+
 	describe('fetchGlobalSearchResults', () => {
-		it('uses Rocket.Chat beta global search when the provider enables it', async () => {
+		it('uses Rocket.Chat beta global search for message text and file title when the provider enables it', async () => {
 			const methodCallWrapper = jest
 				.fn()
 				.mockResolvedValueOnce({
@@ -72,6 +126,11 @@ describe('GlobalSearchView search', () => {
 				.mockResolvedValueOnce({
 					message: {
 						docs: [serverMessage]
+					}
+				})
+				.mockResolvedValueOnce({
+					message: {
+						docs: [serverMessage, serverFileMessage]
 					}
 				});
 			const localSearch = jest.fn();
@@ -92,10 +151,23 @@ describe('GlobalSearchView search', () => {
 				{ uid: 'user-id', rid: '' },
 				{ limit: 50, searchAll: true }
 			);
+			expect(methodCallWrapper).toHaveBeenNthCalledWith(
+				3,
+				'rocketchatSearch.search',
+				'file-title:"hello"',
+				{ uid: 'user-id', rid: '' },
+				{ limit: 50, searchAll: true }
+			);
 			expect(localSearch).not.toHaveBeenCalled();
 			expect(results).toEqual([
 				{
 					message: serverMessage,
+					roomName: 'general',
+					roomType: 'c',
+					rid: 'room-id'
+				},
+				{
+					message: serverFileMessage,
 					roomName: 'general',
 					roomType: 'c',
 					rid: 'room-id'
@@ -114,6 +186,11 @@ describe('GlobalSearchView search', () => {
 				.mockResolvedValueOnce({
 					message: {
 						docs: [serverMessageWithEjsonDate]
+					}
+				})
+				.mockResolvedValueOnce({
+					message: {
+						docs: []
 					}
 				});
 

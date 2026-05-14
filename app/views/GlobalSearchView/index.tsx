@@ -24,7 +24,9 @@ import sdk from '../../lib/services/sdk';
 import styles from './styles';
 import {
 	fetchGlobalSearchResults,
+	getGlobalSearchMessagePreview,
 	getGlobalSearchVisualState,
+	getLocalGlobalSearchTextCondition,
 	getSearchMessageId,
 	getSearchMessageRid,
 	resolveSearchResultRoomInfo,
@@ -50,11 +52,11 @@ const GlobalSearchView = () => {
 	const localSearchMessages = useCallback(async (text: string): Promise<IGlobalSearchResult[]> => {
 		const db = database.active;
 		const messagesCollection = db.get('messages');
-		const likeString = sanitizeLikeString(text);
+		const likeString = sanitizeLikeString(text) || '';
 
 		const messages = (await messagesCollection
 			.query(
-				Q.where('msg', Q.like(`%${likeString}%`)),
+				getLocalGlobalSearchTextCondition(likeString),
 				Q.or(Q.where('t', Q.eq(null)), Q.where('t', Q.notIn(MESSAGE_TYPE_ANY_LOAD))),
 				Q.sortBy('ts', Q.desc),
 				Q.take(QUERY_SIZE)
@@ -251,7 +253,7 @@ const GlobalSearchView = () => {
 					{getSenderName(message)}
 				</Text>
 				<Text style={[styles.messageText, { color: colors.fontDefault }]} numberOfLines={2}>
-					{message.msg}
+					{getGlobalSearchMessagePreview(message)}
 				</Text>
 			</TouchableOpacity>
 		);
@@ -296,7 +298,9 @@ const GlobalSearchView = () => {
 				keyExtractor={item => getSearchMessageId(item.message)}
 				ItemSeparatorComponent={renderSeparator}
 				ListEmptyComponent={renderEmpty}
-				ListFooterComponent={visualState.showFullLoading || visualState.showInlineLoading ? <ActivityIndicator style={styles.footerLoading} /> : null}
+				ListFooterComponent={
+					visualState.showFullLoading || visualState.showInlineLoading ? <ActivityIndicator style={styles.footerLoading} /> : null
+				}
 				removeClippedSubviews={isIOS}
 				{...scrollPersistTaps}
 			/>
