@@ -12,6 +12,12 @@ type TBasicEmoji = string;
 export interface ICustomEmoji {
 	name: string;
 	extension: string;
+	displayMode?: 'inline' | 'sticker';
+	id?: string;
+	source?: 'upload' | 'collected' | 'admin_seeded';
+	thumbUrl?: string;
+	displayName?: string;
+	createdAt?: string;
 }
 
 export type IEmoji = ICustomEmoji | TBasicEmoji;

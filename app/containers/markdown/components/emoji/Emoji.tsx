@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React, { useContext, useEffect } from 'react';
 import { Text, View, useWindowDimensions } from 'react-native';
 import { type Emoji as EmojiProps } from '@rocket.chat/message-parser';
 
@@ -11,6 +11,7 @@ import MarkdownContext from '../../contexts/MarkdownContext';
 import { useAppSelector } from '../../../../lib/hooks/useAppSelector';
 import { getUserSelector } from '../../../../selectors/login';
 import { useResponsiveLayout } from '../../../../lib/hooks/useResponsiveLayout/useResponsiveLayout';
+import { refreshCustomEmojisOnUnknown } from '../../../../lib/methods/refreshCustomEmojisOnUnknown';
 
 interface IEmojiProps {
 	block: EmojiProps;
@@ -40,24 +41,32 @@ const Emoji = ({ block, isBigEmoji, style = {}, index, isAvatar = false }: IEmoj
 	const { formatShortnameToUnicode } = useShortnameToUnicode();
 	const spaceLeft = index && index > 0 ? ' ' : '';
 	const convertAsciiEmoji = useAppSelector(state => getUserSelector(state)?.settings?.preferences?.convertAsciiEmoji);
+	const isUnicodeEmoji = 'unicode' in block;
+	const customEmojiName = isUnicodeEmoji ? undefined : block.value?.value.replace(/\:/g, '');
+	const emojiToken = isUnicodeEmoji ? block.unicode : getEmojiToken(block, isAvatar);
+	const emojiUnicode = isUnicodeEmoji ? block.unicode : formatShortnameToUnicode(emojiToken);
+	const emoji = customEmojiName ? getCustomEmoji?.(customEmojiName) : null;
 
-	if ('unicode' in block) {
+	useEffect(() => {
+		if (!emoji && customEmojiName && emojiToken === emojiUnicode) {
+			refreshCustomEmojisOnUnknown(customEmojiName);
+		}
+	}, [customEmojiName, emoji, emojiToken, emojiUnicode]);
+
+	if (isUnicodeEmoji) {
 		return <Text style={[{ color: colors.fontDefault }, isBigEmoji ? styles.textBig : styles.text]}>{block.unicode}</Text>;
 	}
 
-	const emojiToken = getEmojiToken(block, isAvatar);
-	const emojiUnicode = formatShortnameToUnicode(emojiToken);
-	const emoji = getCustomEmoji?.(block.value?.value.replace(/\:/g, ''));
 	const isAsciiEmoji = !!block?.shortCode && block.value?.value !== block?.shortCode;
 	const displayAsciiEmoji = !convertAsciiEmoji && isAsciiEmoji && !!block.value;
 	const customEmojiSize = {
-		width: 15 * fontScale,
-		height: 15 * fontScale
+		width: isAvatar ? 30 * fontScale : 15 * fontScale,
+		height: isAvatar ? 30 * fontScale : 15 * fontScale
 	};
 
 	const customEmojiBigSize = {
-		width: 30 * fontScale,
-		height: 30 * fontScale
+		width: isAvatar ? 30 * fontScale : 128,
+		height: isAvatar ? 30 * fontScale : 128
 	};
 
 	const avatarStyle = {

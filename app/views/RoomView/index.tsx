@@ -260,7 +260,7 @@ class RoomView extends React.Component<IRoomViewProps, IRoomViewState> {
 	shouldComponentUpdate(nextProps: IRoomViewProps, nextState: IRoomViewState) {
 		const { state } = this;
 		const { roomUpdate, member, isOnHold, isAutocompleteVisible, showMissingE2EEKey, showE2EEDisabledRoom } = state;
-		const { theme, insets, route, encryptionEnabled, airGappedRestrictionRemainingDays } = this.props;
+		const { theme, insets, route, encryptionEnabled, airGappedRestrictionRemainingDays, customEmojis } = this.props;
 		if (theme !== nextProps.theme) {
 			return true;
 		}
@@ -268,6 +268,9 @@ class RoomView extends React.Component<IRoomViewProps, IRoomViewState> {
 			return true;
 		}
 		if (airGappedRestrictionRemainingDays !== nextProps.airGappedRestrictionRemainingDays) {
+			return true;
+		}
+		if (customEmojis !== nextProps.customEmojis) {
 			return true;
 		}
 		if (member.statusText !== nextState.member.statusText) {
@@ -1084,7 +1087,11 @@ class RoomView extends React.Component<IRoomViewProps, IRoomViewState> {
 
 			if (this.shouldNavigateToRoom(message)) {
 				if (message.rid !== this.rid) {
-					debugSearchJump('RoomView.jumpToMessage.navigateOtherRoom', { messageId, messageRid: message.rid, currentRid: this.rid });
+					debugSearchJump('RoomView.jumpToMessage.navigateOtherRoom', {
+						messageId,
+						messageRid: message.rid,
+						currentRid: this.rid
+					});
 					this.navToRoom(message);
 				} else {
 					debugSearchJump('RoomView.jumpToMessage.navigateThread', { messageId, tmid: message.tmid });
@@ -1470,7 +1477,8 @@ class RoomView extends React.Component<IRoomViewProps, IRoomViewState> {
 			baseUrl,
 			Message_Read_Receipt_Enabled,
 			theme,
-			inAppFeedback
+			inAppFeedback,
+			customEmojis
 		} = this.props;
 		const { action, selectedMessages } = this.state;
 		let dateSeparator = null;
@@ -1552,6 +1560,7 @@ class RoomView extends React.Component<IRoomViewProps, IRoomViewState> {
 					autoTranslateLanguage={'id' in room ? room.autoTranslateLanguage : undefined}
 					navToRoomInfo={this.navToRoomInfo}
 					getCustomEmoji={this.getCustomEmoji}
+					customEmojis={customEmojis}
 					handleEnterCall={this.handleEnterCall}
 					blockAction={this.blockAction}
 					threadBadgeColor={this.getBadgeColor(item?.id)}
@@ -1698,7 +1707,7 @@ class RoomView extends React.Component<IRoomViewProps, IRoomViewState> {
 	render() {
 		console.count(`${this.constructor.name}.render calls`);
 		const { room, action, selectedMessages, isAutocompleteVisible, showMissingE2EEKey, showE2EEDisabledRoom } = this.state;
-		const { user, baseUrl, theme, width, serverVersion, navigation } = this.props;
+		const { user, baseUrl, theme, width, serverVersion, navigation, customEmojis } = this.props;
 		const { rid, t } = room;
 		let bannerClosed;
 		let announcement;
@@ -1765,6 +1774,7 @@ class RoomView extends React.Component<IRoomViewProps, IRoomViewState> {
 						hideSystemMessages={this.hideSystemMessages}
 						showMessageInMainThread={user.showMessageInMainThread ?? false}
 						serverVersion={serverVersion}
+						customEmojis={customEmojis}
 					/>
 					{this.renderFooter()}
 					{this.renderActions()}
