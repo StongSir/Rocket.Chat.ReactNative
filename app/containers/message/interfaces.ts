@@ -6,6 +6,7 @@ import { type IUserChannel } from '../markdown/interfaces';
 import { type TGetCustomEmoji } from '../../definitions/IEmoji';
 import {
 	type IAttachment,
+	type ICustomEmojis,
 	type IThread,
 	type IUrl,
 	type IUserMention,
@@ -22,6 +23,7 @@ export interface IMessageAttachments {
 	getCustomEmoji: TGetCustomEmoji;
 	author?: IUserMessage;
 	isOwnMessage?: boolean;
+	customEmojis?: ICustomEmojis;
 }
 
 export interface IMessageAvatar {
@@ -73,6 +75,7 @@ export interface IMessageContent {
 	isTranslated: boolean;
 	pinned?: boolean;
 	isOwnMessage?: boolean;
+	customEmojis?: ICustomEmojis;
 }
 
 export interface IMessageEmoji {
@@ -110,11 +113,11 @@ export interface IMessageRepliedThread extends Pick<IThread, 'tmid' | 'tmsg' | '
 
 export interface IMessageInner
 	extends IMessageContent,
-	IMessageCallButton,
-	IMessageBlocks,
-	IMessageThread,
-	IMessageAttachments,
-	IMessageBroadcast {
+		IMessageCallButton,
+		IMessageBlocks,
+		IMessageThread,
+		IMessageAttachments,
+		IMessageBroadcast {
 	type: MessageType;
 	blocks: [];
 	urls?: IUrl[];

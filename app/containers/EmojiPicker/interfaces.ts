@@ -22,7 +22,7 @@ export interface IFooterProps {
 	onSearchPressed: () => void;
 }
 
-export type TEmojiCategory = keyof typeof emojisByCategory | 'frequentlyUsed' | 'custom';
+export type TEmojiCategory = keyof typeof emojisByCategory | 'frequentlyUsed' | 'custom' | 'userCustom';
 
 export interface IEmojiCategoryProps {
 	onEmojiSelected: (emoji: IEmoji) => void;
@@ -45,4 +45,5 @@ export interface ICustomEmojiProps {
 
 export interface IEmojiProps {
 	emoji: IEmoji;
+	customEmojiStyle?: StyleProp<ImageStyle>;
 }

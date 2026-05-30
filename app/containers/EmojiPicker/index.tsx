@@ -48,17 +48,19 @@ const EmojiPicker = ({
 		/>
 	);
 
-	const renderTabItem = (tab: Route, color: string) => (
-		<CustomIcon
-			accessible
-			accessibilityLabel={tab?.accessibilityLabel}
-			size={24}
-			name={tab.title as TIconsName}
-			color={color}
-			style={styles.tabEmoji}
-			testID={`emoji-picker-tab-${tab.title}`}
-		/>
-	);
+	const renderTabItem = (tab: Route, color: string) => {
+		return (
+			<CustomIcon
+				accessible
+				accessibilityLabel={tab?.accessibilityLabel}
+				size={24}
+				name={tab.title as TIconsName}
+				color={color}
+				style={styles.tabEmoji}
+				testID={`emoji-picker-tab-${tab.title}`}
+			/>
+		);
+	};
 
 	return (
 		<View

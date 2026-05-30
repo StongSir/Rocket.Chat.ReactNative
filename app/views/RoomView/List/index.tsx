@@ -11,7 +11,7 @@ import { shouldHandleJumpWindowBoundary } from './utils';
 const BOUNDARY_EXPANSION_SUPPRESSION_MS = 1200;
 
 const ListContainer = forwardRef<IListContainerRef, IListContainerProps>(
-	({ rid, tmid, renderRow, showMessageInMainThread, serverVersion, hideSystemMessages, listRef }, ref) => {
+	({ rid, tmid, renderRow, showMessageInMainThread, serverVersion, hideSystemMessages, listRef, customEmojis }, ref) => {
 		const isBoundaryExpansionSuppressed = useRef(false);
 		const boundaryExpansionSuppressionTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 		const [messages, messagesIds, fetchMessages, loadMessage, isJumpWindow, expandJumpWindow] = useMessages({
@@ -97,6 +97,7 @@ const ListContainer = forwardRef<IListContainerRef, IListContainerProps>(
 				<List
 					listRef={listRef}
 					data={messages}
+					extraData={customEmojis}
 					renderItem={renderItem}
 					onEndReached={onEndReached}
 					onScrollBoundaryReached={isJumpWindow ? expandJumpWindowOnBoundary : undefined}

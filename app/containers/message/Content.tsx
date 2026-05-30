@@ -86,28 +86,23 @@ const Content = React.memo(
 		// Theme-aware bubble colors
 		const isDarkTheme = theme === 'dark' || theme === 'black';
 		const bubbleColors = {
-			own: '#127fec',                              // Same blue for both themes
-			other: isDarkTheme ? '#3D3D3D' : '#E8E8E8'   // Dark gray for dark, Light gray for light
+			own: '#127fec', // Same blue for both themes
+			other: isDarkTheme ? '#3D3D3D' : '#E8E8E8' // Dark gray for dark, Light gray for light
 		};
 
 		const bubbleStyle = shouldShowBubble
 			? [
-				props.isOwnMessage ? styles.bubbleOwn : styles.bubbleOther,
-				{ backgroundColor: props.isOwnMessage ? bubbleColors.own : bubbleColors.other }
-			]
+					props.isOwnMessage ? styles.bubbleOwn : styles.bubbleOther,
+					{ backgroundColor: props.isOwnMessage ? bubbleColors.own : bubbleColors.other }
+			  ]
 			: undefined;
 
 		// Override theme to 'dark' for own messages in light mode to force white text
 		const themeOverride = props.isOwnMessage && theme === 'light' ? 'dark' : theme;
 
 		return content ? (
-			<View
-				style={[bubbleStyle, props.isTemp && styles.temp]}
-				testID={`message-content-${props.msg || ''}`}
-			>
-				<ThemeContext.Provider value={{ theme: themeOverride, colors: themes[themeOverride] }}>
-					{content}
-				</ThemeContext.Provider>
+			<View style={[bubbleStyle, props.isTemp && styles.temp]} testID={`message-content-${props.msg || ''}`}>
+				<ThemeContext.Provider value={{ theme: themeOverride, colors: themes[themeOverride] }}>{content}</ThemeContext.Provider>
 			</View>
 		) : null;
 	},
@@ -134,6 +129,9 @@ const Content = React.memo(
 			return false;
 		}
 		if (!dequal(prevProps.channels, nextProps.channels)) {
+			return false;
+		}
+		if (prevProps.customEmojis !== nextProps.customEmojis) {
 			return false;
 		}
 		return true;

@@ -7,7 +7,7 @@ import { debounce } from '../../lib/methods/helpers';
 import { getMessageTranslation } from './utils';
 import { type TSupportedThemes, withTheme } from '../../theme';
 import openLink from '../../lib/methods/helpers/openLink';
-import { type IAttachment, type TAnyMessageModel, type TGetCustomEmoji } from '../../definitions';
+import { type IAttachment, type ICustomEmojis, type TAnyMessageModel, type TGetCustomEmoji } from '../../definitions';
 import { type IRoomInfoParam } from '../../views/SearchMessagesView';
 import { E2E_MESSAGE_TYPE, E2E_STATUS } from '../../lib/constants/keys';
 import { messagesStatus } from '../../lib/constants/messagesStatus';
@@ -38,6 +38,7 @@ interface IMessageContainerProps {
 	isIgnored?: boolean;
 	highlighted?: boolean;
 	getCustomEmoji: TGetCustomEmoji;
+	customEmojis?: ICustomEmojis;
 	onLongPress?: (item: TAnyMessageModel) => void;
 	onReactionPress?: (emoji: string, id: string) => void;
 	onEncryptedPress?: () => void;
@@ -72,8 +73,8 @@ interface IMessageContainerState {
 class MessageContainer extends React.Component<IMessageContainerProps, IMessageContainerState> {
 	static defaultProps = {
 		getCustomEmoji: () => null,
-		onLongPress: () => { },
-		blockAction: () => { },
+		onLongPress: () => {},
+		blockAction: () => {},
 		archived: false,
 		broadcast: false,
 		isIgnored: false,
@@ -115,6 +116,9 @@ class MessageContainer extends React.Component<IMessageContainerProps, IMessageC
 			return true;
 		}
 		if (nextProps.dateSeparator !== dateSeparator) {
+			return true;
+		}
+		if (nextProps.customEmojis !== this.props.customEmojis) {
 			return true;
 		}
 		if (nextProps.highlighted !== highlighted) {
@@ -366,7 +370,7 @@ class MessageContainer extends React.Component<IMessageContainerProps, IMessageC
 			isReadReceiptEnabled,
 			autoTranslateRoom,
 			autoTranslateLanguage,
-			navToRoomInfo = () => { },
+			navToRoomInfo = () => {},
 			getCustomEmoji,
 			isThreadRoom,
 			handleEnterCall,

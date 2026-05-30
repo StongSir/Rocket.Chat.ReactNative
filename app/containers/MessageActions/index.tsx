@@ -18,6 +18,7 @@ import Header, { HEADER_HEIGHT, type IHeader } from './Header';
 import events from '../../lib/methods/helpers/log/events';
 import {
 	type IApplicationState,
+	type ICustomEmojis,
 	type IEmoji,
 	type ILoggedUser,
 	type TAnyMessageModel,
@@ -35,6 +36,8 @@ import {
 	translateMessage,
 	reportMessage
 } from '../../lib/services/restApi';
+import { collectMyCustomEmoji, getCustomEmojiServiceErrorMessage } from '../../lib/services/customEmojiService';
+import { extractCollectableCustomEmojiNames } from '../../lib/methods/customEmojiCollect';
 
 export interface IMessageActionsProps {
 	room: TSubscriptionModel;
@@ -64,6 +67,7 @@ export interface IMessageActionsProps {
 	pinMessagePermission?: string[];
 	createDirectMessagePermission?: string[];
 	createDiscussionOtherUserPermission?: string[];
+	customEmojis: ICustomEmojis;
 }
 
 export interface IMessageActions {
@@ -100,6 +104,7 @@ const MessageActions = React.memo(
 				pinMessagePermission,
 				createDirectMessagePermission,
 				createDiscussionOtherUserPermission,
+				customEmojis,
 				serverVersion
 			},
 			ref
@@ -386,6 +391,32 @@ const MessageActions = React.memo(
 				}
 			};
 
+			const collectCustomEmoji = async (rocketEmojiName: string) => {
+				try {
+					await collectMyCustomEmoji(rocketEmojiName);
+					EventEmitter.emit(LISTENER, { message: '已添加到我的表情' });
+				} catch (e) {
+					log(e);
+					EventEmitter.emit(LISTENER, { message: getCustomEmojiServiceErrorMessage(e) });
+				}
+			};
+
+			const handleCollectCustomEmoji = (emojiNames: string[]) => {
+				if (emojiNames.length === 1) {
+					collectCustomEmoji(emojiNames[0]);
+					return;
+				}
+
+				showActionSheet({
+					options: emojiNames.map(name => ({
+						title: `:${name}:`,
+						icon: 'star',
+						onPress: () => collectCustomEmoji(name),
+						testID: `message-actions-collect-custom-emoji-${name}`
+					}))
+				});
+			};
+
 			const handleDelete = (message: TAnyMessageModel) => {
 				showConfirmationAlert({
 					message: I18n.t('You_will_not_be_able_to_recover_this_message'),
@@ -406,6 +437,7 @@ const MessageActions = React.memo(
 				const options: TActionSheetOptionsItem[] = [];
 				const videoConfBlock = message.t === 'videoconf';
 				const username = message.u?.username;
+				const collectableCustomEmojiNames = extractCollectableCustomEmojiNames(message.msg, customEmojis);
 
 				if (!isReadOnly && username) {
 					options.push({
@@ -413,6 +445,15 @@ const MessageActions = React.memo(
 						icon: 'mention',
 						onPress: () => handleMention(username),
 						testID: 'message-actions-mention-user'
+					});
+				}
+
+				if (collectableCustomEmojiNames.length) {
+					options.push({
+						title: '添加到我的表情',
+						icon: 'star',
+						onPress: () => handleCollectCustomEmoji(collectableCustomEmojiNames),
+						testID: 'message-actions-collect-custom-emoji'
 					});
 				}
 
@@ -491,7 +532,6 @@ const MessageActions = React.memo(
 						testID: 'message-actions-forward'
 					});
 				}
-
 
 				// Copy
 				if (!videoConfBlock) {
@@ -636,7 +676,8 @@ const mapStateToProps = (state: IApplicationState) => ({
 	forceDeleteMessagePermission: state.permissions['force-delete-message'],
 	pinMessagePermission: state.permissions['pin-message'],
 	createDirectMessagePermission: state.permissions['create-d'],
-	createDiscussionOtherUserPermission: state.permissions['start-discussion-other-user']
+	createDiscussionOtherUserPermission: state.permissions['start-discussion-other-user'],
+	customEmojis: state.customEmojis
 });
 
 export default connect(mapStateToProps, null, null, { forwardRef: true })(MessageActions);
