@@ -14,7 +14,7 @@ import {
 	type TSetInput
 } from '../interfaces';
 import { useAutocompleteParams, useFocused, useMessageComposerApi, useMicOrSend } from '../context';
-import { fetchIsAllOrHere, getMentionRegexp } from '../helpers';
+import { fetchIsAllOrHere, getMentionRegexp, insertMentionTriggerAtCursor } from '../helpers';
 import { useAutoSaveDraft } from '../hooks';
 import sharedStyles from '../../../views/Styles';
 import { useTheme } from '../../../theme';
@@ -139,10 +139,8 @@ export const ComposerInput = memo(
 						if (autocompleteType) {
 							return;
 						}
-						const { start, end } = selectionRef.current;
-						const text = textRef.current;
-						const newText = `${text.substr(0, start)}@${text.substr(start, end - start)}${text.substr(end)}`;
-						setInput(newText, { start: start + 1, end: start === end ? start + 1 : end + 1 });
+						const { text, selection } = insertMentionTriggerAtCursor(textRef.current, selectionRef.current);
+						setInput(text, selection);
 						setAutocompleteParams({ text: '', type: '@' });
 					});
 				});
@@ -156,7 +154,7 @@ export const ComposerInput = memo(
 
 		useImperativeHandle(ref, () => ({
 			getTextAndClear: () => {
-				const text = textRef.current;
+				const text = textRef.current.trim();
 				setInput('', undefined, true);
 				return text;
 			},
@@ -169,7 +167,7 @@ export const ComposerInput = memo(
 
 		const setInput: TSetInput = (text, selection, forceUpdateDraftMessage) => {
 			const message = text.trim();
-			textRef.current = message;
+			textRef.current = text;
 
 			if (forceUpdateDraftMessage) {
 				saveMessageDraft('');
