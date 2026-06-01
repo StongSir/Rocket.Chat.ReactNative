@@ -1,9 +1,9 @@
 import React from 'react';
 import { Alert } from 'react-native';
-import { fireEvent, render } from '@testing-library/react-native';
+import { fireEvent, render, waitFor } from '@testing-library/react-native';
 
 import EmojiCategory from './EmojiCategory';
-import { deleteMyCustomEmoji } from '../../lib/services/customEmojiService';
+import { deleteMyCustomEmoji, uploadMyCustomEmoji } from '../../lib/services/customEmojiService';
 
 const mockShowActionSheet = jest.fn();
 const mockRefreshUserCustomEmojis = jest.fn();
@@ -42,11 +42,14 @@ jest.mock('../../lib/methods/helpers/ImagePicker/ImagePicker', () => ({
 	openPicker: jest.fn()
 }));
 
+const ImagePicker = require('../../lib/methods/helpers/ImagePicker/ImagePicker');
+
 describe('EmojiCategory user custom management', () => {
 	beforeEach(() => {
 		mockShowActionSheet.mockClear();
 		mockRefreshUserCustomEmojis.mockClear();
 		(deleteMyCustomEmoji as jest.Mock).mockResolvedValue(undefined);
+		(uploadMyCustomEmoji as jest.Mock).mockResolvedValue({ id: 'new-id', name: 'u_new', extension: 'gif' });
 		jest.spyOn(Alert, 'alert').mockImplementation((_title, _message, buttons) => {
 			buttons?.find(button => button.style === 'destructive')?.onPress?.();
 		});
@@ -94,5 +97,26 @@ describe('EmojiCategory user custom management', () => {
 		expect(getByTestId('emoji-picker-upload-custom-emoji')).toHaveStyle({
 			borderRadius: 16
 		});
+	});
+
+	it('uses the gif extension from mime type when picker returns a temporary jpg path', async () => {
+		ImagePicker.openPicker.mockResolvedValue({
+			path: '/tmp/react-native-image-crop-picker/temp-image.jpg',
+			mime: 'image/gif'
+		});
+		const { getByTestId } = render(
+			<EmojiCategory parentWidth={320} category='userCustom' onEmojiSelected={jest.fn()} bottomSheet={false} />
+		);
+
+		fireEvent.press(getByTestId('emoji-picker-upload-custom-emoji'));
+
+		await waitFor(() =>
+			expect(uploadMyCustomEmoji).toHaveBeenCalledWith(
+				expect.objectContaining({
+					name: 'temp-image.gif',
+					type: 'image/gif'
+				})
+			)
+		);
 	});
 });

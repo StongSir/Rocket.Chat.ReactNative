@@ -33,9 +33,23 @@ const ANDROID_BOTTOM_SHEET_CONTENT_PADDING = EMOJI_BUTTON_SIZE + ANDROID_BOTTOM_
 const UPLOADING_EMOJI_ID_PREFIX = 'uploading-custom-emoji';
 const UPLOAD_USER_CUSTOM_EMOJI_ITEM = 'upload-user-custom-emoji';
 const USER_CUSTOM_UPLOAD_BORDER_INSET = 1;
+const imageExtensionByMime: Record<string, string> = {
+	'image/gif': 'gif',
+	'image/jpeg': 'jpg',
+	'image/png': 'png'
+};
 
 const isUploadingEmoji = (emoji: IEmoji): emoji is ICustomEmoji =>
 	typeof emoji !== 'string' && !!emoji.id?.startsWith(UPLOADING_EMOJI_ID_PREFIX);
+
+const filenameWithMimeExtension = (filename: string, mime?: string) => {
+	const extension = mime ? imageExtensionByMime[mime] : undefined;
+	if (!extension) {
+		return filename;
+	}
+	const nameWithoutExtension = filename.replace(/\.[^/.]+$/, '');
+	return `${nameWithoutExtension}.${extension}`;
+};
 
 const useEmojis = (category?: TEmojiCategory) => {
 	const { frequentlyUsed, loaded } = useFrequentlyUsedEmoji();
@@ -113,16 +127,17 @@ const EmojiCategory = ({
 		let uploadingEmoji: ICustomEmoji | undefined;
 		try {
 			const image = await ImagePicker.openPicker({ mediaType: 'photo' });
+			const uploadFileName = filenameWithMimeExtension(image.filename || image.path?.split('/').pop() || 'emoji.png', image.mime);
 			uploadingEmoji = {
 				id: `${UPLOADING_EMOJI_ID_PREFIX}-${Date.now()}`,
-				name: image.filename || image.path?.split('/').pop() || 'uploading-custom-emoji',
+				name: uploadFileName,
 				extension: image.mime?.split('/')[1] || 'png',
 				thumbUrl: image.path
 			};
 			setUploadingEmojis(current => [uploadingEmoji as ICustomEmoji, ...current]);
 			await uploadMyCustomEmoji({
 				uri: image.path,
-				name: image.filename || image.path?.split('/').pop() || 'emoji.png',
+				name: uploadFileName,
 				type: image.mime || 'image/png',
 				displayName: image.filename
 			});
